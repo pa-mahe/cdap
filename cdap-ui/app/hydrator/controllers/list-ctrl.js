@@ -23,10 +23,11 @@ angular.module(PKG.name + '.feature.hydrator')
     $interval, moment, MyPipelineStatusMapper,
     myPipelineCommonApi, PROGRAM_STATUSES) {
     var vm = this;
-    vm.filteredPipeline = [];
     vm.$interval = $interval;
     vm.moment = moment;
     vm.pipelineList = [];
+    vm.filteredPipeline = [];
+    vm.draftPipeLineList = [];
     vm.pipelineListLoaded = false;
     vm.MyPipelineStatusMapper = MyPipelineStatusMapper;
     var eventEmitter = window.CaskCommon.ee(window.CaskCommon.ee);
@@ -39,6 +40,7 @@ angular.module(PKG.name + '.feature.hydrator')
     vm.searchText = '';
     vm.featureName = window.CaskCommon.ThemeHelper.Theme.featureNames.pipelines;
     vm.headerClass = !window.CaskCommon.ThemeHelper.Theme.showHeader ? 'no-header' : '';
+    vm.isSelectAll = false;
     vm.checkForValidPage = (pageNumber) => {
       return (
         !Number.isNaN(pageNumber) &&
@@ -223,6 +225,8 @@ angular.module(PKG.name + '.feature.hydrator')
             .then(() => {
               vm.setCurrentPage();
               vm.fetchPipelinesRunsInfo();
+              // update check status
+              vm.pipelineList.map((app) => app['selected'] = false);
             });
         });
     };
@@ -324,6 +328,7 @@ angular.module(PKG.name + '.feature.hydrator')
       return mySettings.get('hydratorDrafts', true)
         .then(function(res) {
           let draftsList = myHelpers.objectQuery(res, $stateParams.namespace);
+          vm.draftPipeLineList = draftsList;
           if (!angular.isObject(draftsList)) {
             return;
           }
@@ -343,10 +348,54 @@ angular.module(PKG.name + '.feature.hydrator')
         });
     };
 
+
+    vm.updateSelectAllStatus = () => {
+      //update select all check box status
+      if(vm.filteredPipeline.length>0) {
+        vm.isSelectAll = !vm.filteredPipeline.some((item) => !item.selected);
+      } else{
+        vm.isSelectAll = false;
+      }
+    };
+
+
+    vm.pipeNameSearchChangeHandler = () => {
+      setTimeout(() => vm.updateSelectAllStatus());
+    };
+
+    vm.selectDeselectAll = () => {
+       vm.isSelectAll = !vm.isSelectAll;
+      vm.filteredPipeline.map((app) => app['selected'] = vm.isSelectAll);
+    };
+
+    vm.selectDeselectPipeline = (evnet, pipeline) => {
+      pipeline.selected = evnet.target.checked;
+      vm.updateSelectAllStatus();
+    };
+
+
     vm.refreshScreen = () => {
       $state.reload()
       .then(function() {
         // capture the promise resolve state for feature use.
+      });
+    };
+
+    vm.exportPipelines = () => {
+      var req = {
+        namespace: '',
+        pipelineList: [],
+        draftList:[]
+      };
+      angular.forEach(vm.pipelineList, function (app) {
+        if(app.selected) {
+          if (app.isDraft) {
+            const {artifact, description, name, config} = vm.draftPipeLineList[app.id];
+            req.draftList.push({artifact, description, name, config});
+          } else {
+            req.pipelineList.push(app.name);
+          }
+        }
       });
     };
 
