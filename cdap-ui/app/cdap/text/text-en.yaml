@@ -1672,6 +1672,8 @@ features:
       numEventsTitle: Set number of events
       timeRangeTitle: Select time range
       to: To
+    viewPipeline:
+      label: View Pipeline
 
   HttpExecutor:
     body: Body
