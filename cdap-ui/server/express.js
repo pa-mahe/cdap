@@ -572,7 +572,6 @@ function makeApp(authAddress, cdapConfig, uiSettings) {
       if (error) {
         onInvalidKeyCloakToken(error);
       } else if (response) {
-        log.info('response  .................................  ', response.statusCode);
         if (response.statusCode === 200) {
           var respObj = {};
           if (body) {
@@ -607,13 +606,6 @@ function makeApp(authAddress, cdapConfig, uiSettings) {
       //   res.redirect('/');
       //   return;
       // }
-      console.log(req.cookie);
-      // if (/!authAddress.get() ||*/ req.cookies.CDAP_Auth_Token) {
-      if (req.cookies.Keycloak_Token) {
-        console.log("Keycloak Token", req.cookies.Keycloak_Token);
-        res.redirect('/');
-        return;
-      }
       sendLoginPage(res);
     }
   ]);
