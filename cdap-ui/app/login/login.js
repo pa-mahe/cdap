@@ -42,7 +42,9 @@ class Login extends Component {
       message: '',
       formState: false,
       rememberUser: false,
-      inputs: this.getValidationState()
+      inputs: this.getValidationState(),
+      showLoginPage: false,
+      useSecured: false
     };
   }
 
@@ -142,6 +144,40 @@ class Login extends Component {
     });
   }
 
+  getCdapToken = () => {
+    fetch(('/cdapToken'), {
+      method: 'GET',
+      headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
+    })
+      .then((response) => {
+        if (response.status >= 200 && response.status < 300) {
+          return response.json();
+        } else {
+          this.setState({useSecured: true});
+          return Promise.reject();
+        }
+      })
+      .then((res) => {
+        cookie.save('CDAP_Auth_Token', res.access_token, { path: '/'});
+        cookie.save('CDAP_Auth_User', res.userName, { path: '/'});
+        var queryObj = util.getQueryParams(location.search);
+        queryObj.redirectUrl = queryObj.redirectUrl || (location.pathname.endsWith('/login') ? '/' : location.pathname);
+        window.location.href = queryObj.redirectUrl;
+        this.setState({useSecured: false});
+      });
+  }
+
+  componentWillMount() {
+    let keycloakToken = cookie.load('Keycloak_Token');
+    if (keycloakToken) {
+      this.getCdapToken(keycloakToken);
+    } else {
+      if (!this.showLoginPage) {
+        this.setState({useSecured: true});
+      }
+    }
+  }
+
   render() {
     let footer;
     if (this.state.message) {
@@ -153,7 +189,7 @@ class Login extends Component {
       );
     }
 
-    return (this.state.isKeyCloackAuthenticated ? 
+    return (this.state.showLoginPage ? 
       <div>
         <Card footer={footer}>
           <div className="cdap-logo"></div>
@@ -210,7 +246,8 @@ class Login extends Component {
             </div>
           </form>
         </Card>
-      </div>:<Secured  setKeyCloackAuthentication = {this.setKeyCloackAuthentication.bind(this)}/>
+      </div>:this.state.useSecured?<Secured  setKeyCloackAuthentication = {this.setKeyCloackAuthentication.bind(this)}/>:
+        <div>Checking for secured connection</div>
     );
   }
 }
