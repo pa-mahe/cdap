@@ -31,6 +31,7 @@ import Keycloak from 'keycloak-js';
 require('./styles/lib-styles.scss');
 require('./login.scss');
 import T from 'i18n-react';
+import Secured from './secured';
 T.setTexts(require('./text/text-en.yaml'));
 
 class Login extends Component {
