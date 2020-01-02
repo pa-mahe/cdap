@@ -30,6 +30,7 @@ import types from '../cdap/services/inputValidationTemplates';
 require('./styles/lib-styles.scss');
 require('./login.scss');
 import T from 'i18n-react';
+import Secured from './secured';
 T.setTexts(require('./text/text-en.yaml'));
 
 class Login extends Component {
@@ -135,6 +136,12 @@ class Login extends Component {
     });
   }
 
+  setKeyCloackAuthentication(authenticated) {
+    this.setState({
+      isKeyCloackAuthenticated: authenticated
+    });
+  }
+
   render() {
     let footer;
     if (this.state.message) {
@@ -146,7 +153,7 @@ class Login extends Component {
       );
     }
 
-    return (
+    return (this.state.isKeyCloackAuthenticated ? 
       <div>
         <Card footer={footer}>
           <div className="cdap-logo"></div>
@@ -203,7 +210,7 @@ class Login extends Component {
             </div>
           </form>
         </Card>
-      </div>
+      </div>:<Secured  setKeyCloackAuthentication = {this.setKeyCloackAuthentication.bind(this)}/>
     );
   }
 }

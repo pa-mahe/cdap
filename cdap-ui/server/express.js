@@ -220,6 +220,17 @@ function makeApp (authAddress, cdapConfig, uiSettings) {
     res.send('window.CDAP_CONFIG = '+data+';');
   });
 
+  app.get('/keycloak-config', function (req, res) {
+    var config = {
+      'realm': "dev",
+      'url': "http://192.168.154.194:8180/auth",
+      'clientId': 'backend-client',
+      'credentials': {
+        'secret': 'd0c0dd65-28fe-4bae-a35e-010651bce3f2'
+      }
+    };
+    res.json(config);
+  });
 
   app.get('/ui-config.js', function (req, res) {
     var path = __dirname + '/config/cdap-ui-config.json';
@@ -497,12 +508,15 @@ function makeApp (authAddress, cdapConfig, uiSettings) {
   });
 
   app.get('/login', [
-    function(req, res) {
+    function (req, res) {
       res.header({
         'Connection': 'close'
       });
-      if (!authAddress.get() || req.cookies.CDAP_Auth_Token) {
-          res.redirect('/');
+      console.log(req.cookie);
+      // if (/!authAddress.get() ||*/ req.cookies.CDAP_Auth_Token) {
+      if (req.cookies.Keycloak_Token) {
+        console.log("Keycloak Token", req.cookies.Keycloak_Token);
+        res.redirect('/');
         return;
       }
       sendLoginPage(res);
