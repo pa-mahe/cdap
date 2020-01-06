@@ -145,6 +145,10 @@ public class AuthorizerInstantiator implements Closeable, Supplier<Authorizer> {
     return authorizer;
   }
 
+  public AuthorizerClassLoader getAuthorizerClassLoader (){
+    return this.authorizerClassLoader;
+  }
+
   /**
    * Creates a new instance of the configured {@link Authorizer} extension, based on the provided extension jar
    * file.

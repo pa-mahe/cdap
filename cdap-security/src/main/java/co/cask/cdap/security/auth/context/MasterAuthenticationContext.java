@@ -21,6 +21,7 @@ import co.cask.cdap.security.spi.authentication.AuthenticationContext;
 import co.cask.cdap.security.spi.authentication.SecurityRequestContext;
 import com.google.common.base.Throwables;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.commons.codec.binary.Base64;
 
 import java.io.IOException;
 
@@ -49,7 +50,14 @@ public class MasterAuthenticationContext implements AuthenticationContext {
     if (userId == null) {
       try {
         userId = UserGroupInformation.getCurrentUser().getShortUserName();
-      } catch (IOException e) {
+        if(SecurityRequestContext.getAccessToken()!=null) {
+          String accessToken = new String(Base64.decodeBase64(SecurityRequestContext.getAccessToken().trim()));
+          String [] keycloakToken1 = accessToken.substring(userId.length() + 2).split("\\�");
+          String keycloakToken = (keycloakToken1[1].trim()).replaceAll("[^\\p{ASCII}]", "");
+          return new Principal(userId, Principal.PrincipalType.USER, null, keycloakToken);
+        }
+
+        } catch (IOException e) {
         throw Throwables.propagate(e);
       }
     }

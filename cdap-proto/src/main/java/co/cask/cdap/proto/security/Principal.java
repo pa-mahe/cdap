@@ -42,15 +42,21 @@ public class Principal {
   // This needs to be transient because we don't want this to be populated during deserialization since that
   // value will not be provided by the client.
   private transient int hashCode;
+  private String accessToken;
 
   public Principal(String name, PrincipalType type) {
     this(name, type, null);
   }
 
   public Principal(String name, PrincipalType type, @Nullable String kerberosPrincipal) {
+    this(name,type,kerberosPrincipal,null);
+  }
+
+  public Principal(String name, PrincipalType type, @Nullable String kerberosPrincipal, String accessToken) {
     this.name = name;
     this.type = type;
     this.kerberosPrincipal = kerberosPrincipal;
+    this.accessToken = accessToken;
   }
 
   public String getName() {
@@ -65,6 +71,9 @@ public class Principal {
   public String getKerberosPrincipal() {
     return kerberosPrincipal;
   }
+
+  @Nullable
+  public String getAccessToken() { return accessToken; }
 
   @Override
   public boolean equals(Object o) {
@@ -99,6 +108,7 @@ public class Principal {
       "name='" + name + '\'' +
       ", type=" + type +
       ", kerberosPrincipal=" + kerberosPrincipal +
+      ", accessToken=" + accessToken +
       '}';
   }
 }
