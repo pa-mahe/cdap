@@ -58,7 +58,7 @@ public class MasterAuthenticationContext implements AuthenticationContext {
     if(SecurityRequestContext.getAccessToken()!=null) {
       try {
         String accessToken = new String(Base64.decodeBase64(SecurityRequestContext.getAccessToken().trim()));
-        String [] keycloakToken1 = accessToken.substring(userId.length() + 2).split("\\�");
+        String [] keycloakToken1 = accessToken.split("\\�");
         String keycloakToken = (keycloakToken1[1].trim()).replaceAll("[^\\p{ASCII}]", "");
         return new Principal(userId, Principal.PrincipalType.USER, null, keycloakToken);
       }catch (Exception ex){

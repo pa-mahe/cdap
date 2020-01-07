@@ -145,6 +145,23 @@ public class GrantAccessToken {
     }
 
     /**
+     *  Get an AccessToken from KNOXToken
+     */
+    @Path(Paths.GET_TOKEN_FROM_KNOX)
+    @GET
+    @Produces("application/json")
+    public Response tokenFromKNOX(@Context HttpServletRequest request, @Context HttpServletResponse response)
+            throws IOException, ServletException {
+        AccessToken token = getTokenFromKNOX(request, response);
+        if (token != null) {
+            setResponse(request, response, token,tokenExpiration);
+            return Response.status(200).build();
+        } else {
+            return Response.status(201).build();
+        }
+    }
+
+    /**
      * Get an AccessToken from KeycloakToken.
      */
 
@@ -163,7 +180,7 @@ public class GrantAccessToken {
         return Response.status(401).build();
     }
 
-    private void setResponse(HttpServletRequest request, HttpServletResponse response, AccessToken token, String refreshToken,
+    private void setResponse(HttpServletRequest request, HttpServletResponse response, AccessToken token,
                              long tokenValidity) throws IOException, ServletException {
 
         /* TO BE DONE */
@@ -175,11 +192,6 @@ public class GrantAccessToken {
                 ExternalAuthenticationServer.ResponseFields.TOKEN_TYPE_BODY);
         json.addProperty(ExternalAuthenticationServer.ResponseFields.EXPIRES_IN,
                 TimeUnit.SECONDS.convert(tokenValidity, TimeUnit.MILLISECONDS));
-
-        if (refreshToken != null && !refreshToken.isEmpty()) {
-            json.addProperty(OAuth2Constants.REFRESH_TOKEN, refreshToken);
-        }
-
         response.getOutputStream().print(json.toString());
         response.setStatus(HttpServletResponse.SC_OK);
     }
@@ -231,7 +243,7 @@ public class GrantAccessToken {
         AccessToken cdapToken = tokenManager.signIdentifier(tokenIdentifier);
         LOG.debug("Issued token for user {}", username);
 
-        setResponse(request, response, cdapToken, null, (expireTime - issueTime));
+        setResponse(request, response, cdapToken , (expireTime - issueTime));
 
         return cdapToken;
     }
