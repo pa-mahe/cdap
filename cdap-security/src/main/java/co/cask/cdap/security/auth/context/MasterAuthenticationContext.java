@@ -50,17 +50,22 @@ public class MasterAuthenticationContext implements AuthenticationContext {
     if (userId == null) {
       try {
         userId = UserGroupInformation.getCurrentUser().getShortUserName();
-        if(SecurityRequestContext.getAccessToken()!=null) {
-          String accessToken = new String(Base64.decodeBase64(SecurityRequestContext.getAccessToken().trim()));
-          String [] keycloakToken1 = accessToken.substring(userId.length() + 2).split("\\�");
-          String keycloakToken = (keycloakToken1[1].trim()).replaceAll("[^\\p{ASCII}]", "");
-          return new Principal(userId, Principal.PrincipalType.USER, null, keycloakToken);
-        }
-
         } catch (IOException e) {
         throw Throwables.propagate(e);
       }
     }
+
+    if(SecurityRequestContext.getAccessToken()!=null) {
+      try {
+        String accessToken = new String(Base64.decodeBase64(SecurityRequestContext.getAccessToken().trim()));
+        String [] keycloakToken1 = accessToken.substring(userId.length() + 2).split("\\�");
+        String keycloakToken = (keycloakToken1[1].trim()).replaceAll("[^\\p{ASCII}]", "");
+        return new Principal(userId, Principal.PrincipalType.USER, null, keycloakToken);
+      }catch (Exception ex){
+        System.out.println(ex.getMessage());
+      }
+    }
+
     return new Principal(userId, Principal.PrincipalType.USER);
   }
 }
