@@ -23,10 +23,13 @@ import org.apache.hadoop.mapred.JobConf
 import org.apache.hadoop.security.UserGroupInformation
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-
 import java.io.File
 import java.util
 
+import co.cask.cdap.api.data.batch.Split
+import org.apache.spark.sql.{DataFrame, SparkSession}
+
+import scala.reflect.ClassTag
 import scala.tools.nsc.Settings
 
 /**
@@ -49,4 +52,5 @@ class DefaultSparkExecutionContext(sparkClassLoader: SparkClassLoader, localizeR
     settings.Yreploutdir.value = classDir.getAbsolutePath
     new DefaultSparkInterpreter(settings, urlAdder, onClose)
   }
+
 }

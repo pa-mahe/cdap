@@ -34,6 +34,7 @@ import co.cask.cdap.api.workflow.{WorkflowInfo, WorkflowToken}
 import co.cask.cdap.api.{RuntimeContext, ServiceDiscoverer, TaskLocalizationContext, Transactional, TxRunnable}
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.tephra.TransactionFailureException
 
 import scala.reflect.ClassTag
@@ -125,7 +126,7 @@ trait SparkExecutionContextBase extends RuntimeContext with Transactional with M
     * Creates a [[org.apache.spark.rdd.RDD]] from the given [[co.cask.cdap.api.dataset.Dataset]].
     * Using the implicit object co.cask.cdap.api.spark.SparkMain.SparkProgramContextFunctions is preferred.
     *
-    * @param sc the [[org.apache.spark.SparkContext]] to use
+    * @param sc the [[org.apache.spark.sql.SparkSession]] to use
     * @param datasetName name of the Dataset
     * @param arguments arguments for the Dataset
     * @param splits an [[scala.Option]] of [[scala.collection.Iterable]] of [[co.cask.cdap.api.data.batch.Split]]
@@ -135,16 +136,16 @@ trait SparkExecutionContextBase extends RuntimeContext with Transactional with M
     * @return A new [[org.apache.spark.rdd.RDD]] instance that reads from the given Dataset.
     * @throws co.cask.cdap.api.data.DatasetInstantiationException if the Dataset doesn't exist
     */
-  def fromDataset[K: ClassTag, V: ClassTag](sc: SparkContext,
+  def fromDataset[K: ClassTag, V: ClassTag](sparkSession: SparkSession,
                                             datasetName: String,
                                             arguments: Map[String, String],
-                                            splits: Option[Iterable[_ <: Split]]): RDD[(K, V)]
+                                            splits: Option[Iterable[_ <: Split]]): DataFrame
 
   /**
     * Creates a [[org.apache.spark.rdd.RDD]] from the given [[co.cask.cdap.api.dataset.Dataset]].
     * Using the implicit object co.cask.cdap.api.spark.SparkMain.SparkProgramContextFunctions is preferred.
     *
-    * @param sc the [[org.apache.spark.SparkContext]] to use
+    * @param sc the [[org.apache.spark.sql.SparkSession]] to use
     * @param namespace namespace in which the dataset exists
     * @param datasetName name of the Dataset
     * @param arguments arguments for the Dataset
@@ -155,17 +156,17 @@ trait SparkExecutionContextBase extends RuntimeContext with Transactional with M
     * @return A new [[org.apache.spark.rdd.RDD]] instance that reads from the given Dataset.
     * @throws co.cask.cdap.api.data.DatasetInstantiationException if the Dataset doesn't exist
     */
-  def fromDataset[K: ClassTag, V: ClassTag](sc: SparkContext,
+  def fromDataset[K: ClassTag, V: ClassTag](sparkSession: SparkSession,
                                             namespace: String,
                                             datasetName: String,
                                             arguments: Map[String, String],
-                                            splits: Option[Iterable[_ <: Split]]): RDD[(K, V)]
+                                            splits: Option[Iterable[_ <: Split]]): DataFrame
   /**
     * Creates a [[org.apache.spark.rdd.RDD]] that represents data from the given stream for events in the given
     * time range.
     * Using the implicit object co.cask.cdap.api.spark.SparkMain.SparkProgramContextFunctions is preferred.
     *
-    * @param sc the [[org.apache.spark.SparkContext]] to use
+    * @param sc the [[org.apache.spark.sql.SparkSession]] to use
     * @param streamName name of the stream
     * @param startTime  the starting time of the stream to be read in milliseconds (inclusive);
     *                   passing in `0` means start reading from the first event available in the stream.

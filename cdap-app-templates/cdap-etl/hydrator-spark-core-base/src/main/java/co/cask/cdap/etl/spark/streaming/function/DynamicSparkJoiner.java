@@ -75,10 +75,11 @@ public class DynamicSparkJoiner< U> extends SparkJoiner<U> {
       Transactionals.execute(sec, new TxRunnable() {
         @Override
         public void run(DatasetContext datasetContext) throws Exception {
-          PipelineRuntime pipelineRuntime = new SparkPipelineRuntime(sec);
-          SparkExecutionPluginContext sparkPluginContext =
-            new BasicSparkExecutionPluginContext(sec, jsc, datasetContext, pipelineRuntime, stageSpec);
-          delegate.initialize(sparkPluginContext);
+          //TODO temp commented to work on batch mode first
+//          PipelineRuntime pipelineRuntime = new SparkPipelineRuntime(sec);
+//          SparkExecutionPluginContext sparkPluginContext =
+//            new BasicSparkExecutionPluginContext(sec, jsc, datasetContext, pipelineRuntime, stageSpec);
+//          delegate.initialize(sparkPluginContext);
         }
       }, Exception.class);
     }

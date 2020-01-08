@@ -14,11 +14,12 @@
  * the License.
  */
 
-package co.cask.cdap.etl.spark.batch;
+package co.cask.cdap.etl.spark.dataframe;
 
 import co.cask.cdap.api.data.batch.Output;
 import co.cask.cdap.api.data.batch.OutputFormatProvider;
 import co.cask.cdap.api.spark.JavaSparkExecutionContext;
+import co.cask.cdap.etl.spark.batch.DatasetInfo;
 import com.google.common.collect.ImmutableMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.MRJobConfig;
@@ -33,12 +34,12 @@ import java.util.Set;
  * Handles writes to batch sinks. Maintains a mapping from sinks to their outputs and handles serialization and
  * deserialization for those mappings.
  */
-public final class SparkBatchSinkFactory {
+public final class SparkDfSinkFactory {
   private final Map<String, OutputFormatProvider> outputFormatProviders;
   private final Map<String, DatasetInfo> datasetInfos;
   private final Map<String, Set<String>> sinkOutputs;
 
-  public SparkBatchSinkFactory() {
+  public SparkDfSinkFactory() {
     this.outputFormatProviders = new HashMap<>();
     this.datasetInfos = new HashMap<>();
     this.sinkOutputs = new HashMap<>();
@@ -78,32 +79,33 @@ public final class SparkBatchSinkFactory {
 
 
   @Deprecated
-  public <K, V> void writeFromRDD(JavaPairRDD<K, V> rdd, JavaSparkExecutionContext sec, String sinkName,
+  public <K, V> void writeFromDf(CDataset cDataset, JavaSparkExecutionContext sec, String sinkName,
                                   Class<K> keyClass, Class<V> valueClass) {
-    Set<String> outputNames = sinkOutputs.get(sinkName);
-    if (outputNames == null || outputNames.isEmpty()) {
-      // should never happen if validation happened correctly at pipeline configure time
-      throw new IllegalArgumentException(sinkName + " has no outputs. " +
-                                           "Please check that the sink calls addOutput at some point.");
-    }
-
-    for (String outputName : outputNames) {
-      OutputFormatProvider outputFormatProvider = outputFormatProviders.get(outputName);
-      if (outputFormatProvider != null) {
-        Configuration hConf = new Configuration();
-        hConf.clear();
-        for (Map.Entry<String, String> entry : outputFormatProvider.getOutputFormatConfiguration().entrySet()) {
-          hConf.set(entry.getKey(), entry.getValue());
-        }
-        hConf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, outputFormatProvider.getOutputFormatClassName());
-        rdd.saveAsNewAPIHadoopDataset(hConf);
-      }
-
-      DatasetInfo datasetInfo = datasetInfos.get(outputName);
-      if (datasetInfo != null) {
-        sec.saveAsDataset(rdd, datasetInfo.getDatasetName(), datasetInfo.getDatasetArgs());
-      }
-    }
+//    Set<String> outputNames = sinkOutputs.get(sinkName);
+//    if (outputNames == null || outputNames.isEmpty()) {
+//      // should never happen if validation happened correctly at pipeline configure time
+//      throw new IllegalArgumentException(sinkName + " has no outputs. " +
+//                                           "Please check that the sink calls addOutput at some point.");
+//    }
+//
+//    for (String outputName : outputNames) {
+//      OutputFormatProvider outputFormatProvider = outputFormatProviders.get(outputName);
+//      if (outputFormatProvider != null) {
+//        Configuration hConf = new Configuration();
+//        hConf.clear();
+//        for (Map.Entry<String, String> entry : outputFormatProvider.getOutputFormatConfiguration().entrySet()) {
+//          hConf.set(entry.getKey(), entry.getValue());
+//        }
+//        hConf.set(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, outputFormatProvider.getOutputFormatClassName());
+//        rdd.saveAsNewAPIHadoopDataset(hConf);
+//      }
+//
+//      DatasetInfo datasetInfo = datasetInfos.get(outputName);
+//      if (datasetInfo != null) {
+//        sec.saveAsDataset(rdd, datasetInfo.getDatasetName(), datasetInfo.getDatasetArgs());
+//      }
+//    }
+    throw new UnsupportedOperationException("not implemented yet");
   }
 
   private void addStageOutput(String stageName, String outputName) {

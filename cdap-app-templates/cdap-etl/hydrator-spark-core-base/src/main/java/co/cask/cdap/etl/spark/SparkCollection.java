@@ -18,6 +18,8 @@ package co.cask.cdap.etl.spark;
 
 import co.cask.cdap.etl.api.batch.SparkCompute;
 import co.cask.cdap.etl.api.batch.SparkSink;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeCompute;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeSink;
 import co.cask.cdap.etl.api.streaming.Windower;
 import co.cask.cdap.etl.common.RecordInfo;
 import co.cask.cdap.etl.common.StageStatisticsCollector;
@@ -57,10 +59,12 @@ public interface SparkCollection<T> {
   <K, V> SparkPairCollection<K, V> flatMapToPair(PairFlatMapFunction<T, K, V> function);
 
   <U> SparkCollection<U> compute(StageSpec stageSpec, SparkCompute<T, U> compute) throws Exception;
+  <U> SparkCollection<U> compute(StageSpec stageSpec, SparkDataframeCompute<T, U> compute) throws Exception;
 
   Runnable createStoreTask(StageSpec stageSpec, PairFlatMapFunction<T, Object, Object> sinkFunction);
 
   Runnable createStoreTask(StageSpec stageSpec, SparkSink<T> sink) throws Exception;
+  Runnable createStoreTask(StageSpec stageSpec, SparkDataframeSink<T> sink) throws Exception;
 
   void publishAlerts(StageSpec stageSpec, StageStatisticsCollector collector) throws Exception;
 

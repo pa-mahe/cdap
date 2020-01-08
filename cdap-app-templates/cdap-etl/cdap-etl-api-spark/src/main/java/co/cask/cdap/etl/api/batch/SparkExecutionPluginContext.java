@@ -32,6 +32,7 @@ import org.apache.spark.Partition;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.SparkSession;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -182,12 +183,19 @@ public interface SparkExecutionPluginContext extends DatasetContext, TransformCo
    */
   <K, V> void saveAsDataset(JavaPairRDD<K, V> rdd, String datasetName, Map<String, String> arguments);
 
-  /**
-   * Returns the {@link JavaSparkContext} used during the execution.
+//  /**
+//   * Returns the {@link JavaSparkContext} used during the execution.
+//   *
+//   * @return the Spark Context
+//   */
+//  JavaSparkContext getSparkContext();
+
+   /**
+   * Returns the {@link SparkSession} used during the execution.
    *
-   * @return the Spark Context
+   * @return the SparkSession
    */
-  JavaSparkContext getSparkContext();
+  SparkSession getSparkSession();
 
   /**
    * Returns a {@link Serializable} {@link PluginContext} which can be used to request for plugins instances. The

@@ -26,5 +26,5 @@ import org.apache.spark.sql.SparkSession
   */
 class DefaultSparkHttpServiceContext(sec: SparkExecutionContext) extends AbstractSparkHttpServiceContext(sec) {
 
-  override lazy val getSparkSession: SparkSession = new SQLContext(SparkRuntimeEnv.waitForContext).sparkSession
+  override lazy val getSparkSession: SparkSession = SparkRuntimeEnv.waitForContext
 }

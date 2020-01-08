@@ -24,9 +24,10 @@ import co.cask.cdap.api.data.batch.Split
 import co.cask.cdap.api.data.format.FormatSpecification
 import co.cask.cdap.api.flow.flowlet.StreamEvent
 import co.cask.cdap.api.stream.GenericStreamEventData
-import org.apache.spark.SparkContext
+import org.apache.spark.sql.DataFrame
+//import org.apache.spark.SparkContext
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.rdd.RDD
-
 import java.nio.charset.Charset
 
 import scala.language.implicitConversions
@@ -163,11 +164,11 @@ trait SparkMain extends Serializable {
   }
 
   /**
-    * Implicit class for adding addition methods to [[org.apache.spark.SparkContext]].
+    * Implicit class for adding addition methods to [[org.apache.spark.sql.SparkSession]].
     *
-    * @param sc the [[org.apache.spark.SparkContext]]
+    * @param sparkSession the [[org.apache.spark.sql.SparkSession]]
     */
-  implicit class SparkProgramContextFunctions(sc: SparkContext) {
+  implicit class SparkProgramContextFunctions(sparkSession: SparkSession) {
 
     /**
       * Creates a [[org.apache.spark.rdd.RDD]] from the given [[co.cask.cdap.api.dataset.Dataset]].
@@ -178,8 +179,8 @@ trait SparkMain extends Serializable {
       * @return A new [[org.apache.spark.rdd.RDD]] instance that reads from the given Dataset.
       * @throws co.cask.cdap.api.data.DatasetInstantiationException if the Dataset doesn't exist
       */
-    def fromDataset[K: ClassTag, V: ClassTag](datasetName: String)
-                                             (implicit sec: SparkExecutionContext): RDD[(K, V)] = {
+    def fromDataset(datasetName: String)
+                                             (implicit sec: SparkExecutionContext): DataFrame = {
       fromDataset(datasetName, Map[String, String]())
     }
 
@@ -193,9 +194,9 @@ trait SparkMain extends Serializable {
       * @return A new [[org.apache.spark.rdd.RDD]] instance that reads from the given Dataset.
       * @throws co.cask.cdap.api.data.DatasetInstantiationException if the Dataset doesn't exist
       */
-    def fromDataset[K: ClassTag, V: ClassTag](namespace: String,
+    def fromDataset(namespace: String,
                                               datasetName: String)
-                                             (implicit sec: SparkExecutionContext): RDD[(K, V)] = {
+                                             (implicit sec: SparkExecutionContext): DataFrame = {
       fromDataset(namespace, datasetName, Map[String, String]())
     }
 
@@ -209,9 +210,9 @@ trait SparkMain extends Serializable {
       * @return A new [[org.apache.spark.rdd.RDD]] instance that reads from the given Dataset.
       * @throws co.cask.cdap.api.data.DatasetInstantiationException if the Dataset doesn't exist
       */
-    def fromDataset[K: ClassTag, V: ClassTag](datasetName: String,
+    def fromDataset(datasetName: String,
                                               arguments: Map[String, String])
-                                             (implicit sec: SparkExecutionContext): RDD[(K, V)] = {
+                                             (implicit sec: SparkExecutionContext): DataFrame = {
       fromDataset(datasetName, arguments, None)
     }
 
@@ -226,10 +227,10 @@ trait SparkMain extends Serializable {
       * @return A new [[org.apache.spark.rdd.RDD]] instance that reads from the given Dataset.
       * @throws co.cask.cdap.api.data.DatasetInstantiationException if the Dataset doesn't exist
       */
-    def fromDataset[K: ClassTag, V: ClassTag](namespace: String,
+    def fromDataset(namespace: String,
                                               datasetName: String,
                                               arguments: Map[String, String])
-                                             (implicit sec: SparkExecutionContext): RDD[(K, V)] = {
+                                             (implicit sec: SparkExecutionContext): DataFrame = {
       fromDataset(namespace, datasetName, arguments, None)
     }
 
@@ -248,11 +249,12 @@ trait SparkMain extends Serializable {
       * @return A new [[org.apache.spark.rdd.RDD]] instance that reads from the given Dataset.
       * @throws co.cask.cdap.api.data.DatasetInstantiationException if the Dataset doesn't exist
       */
-    def fromDataset[K: ClassTag, V: ClassTag](datasetName: String,
+    def fromDataset(datasetName: String,
                                               arguments: Map[String, String],
                                               splits: Option[Iterable[_ <: Split]])
-                                             (implicit sec: SparkExecutionContext): RDD[(K, V)] = {
-      sec.fromDataset(sc, datasetName, arguments, splits)
+                                             (implicit sec: SparkExecutionContext): DataFrame = {
+      sec.fromDataset(sparkSession, datasetName, arguments, splits)
+      
     }
 
     /**
@@ -271,12 +273,12 @@ trait SparkMain extends Serializable {
       * @return A new [[org.apache.spark.rdd.RDD]] instance that reads from the given Dataset.
       * @throws co.cask.cdap.api.data.DatasetInstantiationException if the Dataset doesn't exist
       */
-    def fromDataset[K: ClassTag, V: ClassTag](namespace: String,
+    def fromDataset(namespace: String,
                                               datasetName: String,
                                               arguments: Map[String, String],
                                               splits: Option[Iterable[_ <: Split]])
-                                             (implicit sec: SparkExecutionContext): RDD[(K, V)] = {
-      sec.fromDataset(sc, namespace, datasetName, arguments, splits)
+                                             (implicit sec: SparkExecutionContext): DataFrame = {
+      sec.fromDataset(sparkSession, namespace, datasetName, arguments, splits)
     }
 
     /**
@@ -329,7 +331,7 @@ trait SparkMain extends Serializable {
       */
     def fromStream[T: ClassTag](streamName: String, startTime: Long, endTime: Long)
                                (implicit sec: SparkExecutionContext, decoder: StreamEvent => T): RDD[T] = {
-      sec.fromStream(sc, streamName, startTime, endTime)
+      sec.fromStream(sparkSession.sparkContext, streamName, startTime, endTime)
     }
 
     /**
@@ -350,7 +352,7 @@ trait SparkMain extends Serializable {
       */
     def fromStream[T: ClassTag](namespace: String, streamName: String, startTime: Long, endTime: Long)
                                (implicit sec: SparkExecutionContext, decoder: StreamEvent => T): RDD[T] = {
-      sec.fromStream(sc, namespace, streamName, startTime, endTime)
+      sec.fromStream(sparkSession.sparkContext, namespace, streamName, startTime, endTime)
     }
 
     /**
@@ -411,7 +413,7 @@ trait SparkMain extends Serializable {
     def fromStream[T: ClassTag](streamName: String, formatSpec: FormatSpecification,
                                 startTime: Long, endTime: Long)
                                (implicit sec: SparkExecutionContext) : RDD[(Long, GenericStreamEventData[T])] = {
-      sec.fromStream(sc, streamName, formatSpec, startTime, endTime)
+      sec.fromStream(sparkSession.sparkContext, streamName, formatSpec, startTime, endTime)
     }
 
     /**
@@ -434,7 +436,7 @@ trait SparkMain extends Serializable {
     def fromStream[T: ClassTag](namespace: String, streamName: String, formatSpec: FormatSpecification,
                                 startTime: Long, endTime: Long)
                                (implicit sec: SparkExecutionContext) : RDD[(Long, GenericStreamEventData[T])] = {
-      sec.fromStream(sc, streamName, formatSpec, startTime, endTime)
+      sec.fromStream(sparkSession.sparkContext, streamName, formatSpec, startTime, endTime)
     }
   }
 

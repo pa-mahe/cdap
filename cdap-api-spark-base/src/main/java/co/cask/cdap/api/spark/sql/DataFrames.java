@@ -388,7 +388,7 @@ public final class DataFrames {
 
     // Some special types in Spark SQL
     if (dataType.equals(DataTypes.TimestampType)) {
-      /* 
+      /*
        * Check if field schema has logical type TIMESTAMP_MICROS. If yes,
        * then value should convert the value to milli seconds as Timestamp class
        * treats the value as milliseconds by default where as CDAP uses
@@ -438,7 +438,7 @@ public final class DataFrames {
       case STRING:
         return value;
       case BYTES:
-        return ByteBuffer.wrap((byte[]) value);
+        return (byte[]) value;
       case ARRAY: {
         // Value must be a collection
         @SuppressWarnings("unchecked")

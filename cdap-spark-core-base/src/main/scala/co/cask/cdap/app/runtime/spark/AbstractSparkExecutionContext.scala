@@ -60,6 +60,7 @@ import org.apache.hadoop.mapreduce.MRJobConfig
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import org.apache.spark.scheduler._
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.{SparkContext, TaskContext}
 import org.apache.tephra.TransactionAware
 import org.apache.twill.api.RunId
@@ -266,22 +267,32 @@ abstract class AbstractSparkExecutionContext(sparkClassLoader: SparkClassLoader,
     interpreter
   }
 
-  override def fromDataset[K: ClassTag, V: ClassTag](sc: SparkContext,
-                                                     datasetName: String,
-                                                     arguments: Map[String, String],
-                                                     splits: Option[Iterable[_ <: Split]]): RDD[(K, V)] = {
-    new DatasetRDD[K, V](sc, createDatasetCompute(), runtimeContext.getConfiguration, getNamespace, datasetName,
-                         arguments, splits, getDriveHttpServiceBaseURI(sc))
-  }
+//  override def fromDataset[K: ClassTag, V: ClassTag](sc: SparkContext,
+//                                                     datasetName: String,
+//                                                     arguments: Map[String, String],
+//                                                     splits: Option[Iterable[_ <: Split]]): RDD[(K, V)] = {
+//    new DatasetRDD[K, V](sc, createDatasetCompute(), runtimeContext.getConfiguration, getNamespace, datasetName,
+//                         arguments, splits, getDriveHttpServiceBaseURI(sc))
+//  }
+//
+//  override def fromDataset[K: ClassTag, V: ClassTag](sc: SparkContext,
+//                                                     namespace: String,
+//                                                     datasetName: String,
+//                                                     arguments: Map[String, String],
+//                                                     splits: Option[Iterable[_ <: Split]]): RDD[(K, V)] = {
+//    new DatasetRDD[K, V](sc, createDatasetCompute(), runtimeContext.getConfiguration, namespace,
+//                         datasetName, arguments, splits, getDriveHttpServiceBaseURI(sc))
+//  }
 
-  override def fromDataset[K: ClassTag, V: ClassTag](sc: SparkContext,
-                                                     namespace: String,
-                                                     datasetName: String,
-                                                     arguments: Map[String, String],
-                                                     splits: Option[Iterable[_ <: Split]]): RDD[(K, V)] = {
-    new DatasetRDD[K, V](sc, createDatasetCompute(), runtimeContext.getConfiguration, namespace,
-                         datasetName, arguments, splits, getDriveHttpServiceBaseURI(sc))
-  }
+
+    override def fromDataset[K: ClassTag, V: ClassTag](sparkSession: SparkSession, datasetName: String, arguments: Map[String, String], splits: Option[Iterable[_ <: Split]]): DataFrame = {
+      throw new UnsupportedOperationException("not implemented yet")
+    }
+
+    override def fromDataset[K: ClassTag, V: ClassTag](sparkSession: SparkSession, namespace: String, datasetName: String, arguments: Map[String, String], splits: Option[Iterable[_ <: Split]]): DataFrame = {
+      throw new UnsupportedOperationException("not implemented yet")
+    }
+
 
   override def fromStream[T: ClassTag](sc: SparkContext, streamName: String, startTime: Long, endTime: Long)
                                       (implicit decoder: StreamEvent => T): RDD[T] = {

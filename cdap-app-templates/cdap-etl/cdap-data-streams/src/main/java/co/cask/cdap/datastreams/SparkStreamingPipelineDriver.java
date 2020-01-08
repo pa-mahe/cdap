@@ -134,16 +134,17 @@ public class SparkStreamingPipelineDriver implements JavaSparkMain {
                                                                         pipelineSpec.isProcessTimingEnabled());
         // TODO: figure out how to get partitions to use for aggregators and joiners.
         // Seems like they should be set at configure time instead of runtime? but that requires an API change.
-        try {
-          runner.runPipeline(pipelinePhase, StreamingSource.PLUGIN_TYPE,
-                             sec, new HashMap<String, Integer>(), pluginContext,
-                             new HashMap<String, StageStatisticsCollector>(), jssc.sparkContext());
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
-        if (checkpointDir != null) {
-          jssc.checkpoint(checkpointDir);
-        }
+        //TODO temp comenting 
+//        try {
+//          runner.runPipeline(pipelinePhase, StreamingSource.PLUGIN_TYPE,
+//                             sec, new HashMap<String, Integer>(), pluginContext,
+//                             new HashMap<String, StageStatisticsCollector>(), jssc.sparkContext());
+//        } catch (Exception e) {
+//          throw new RuntimeException(e);
+//        }
+//        if (checkpointDir != null) {
+//          jssc.checkpoint(checkpointDir);
+//        }
         return jssc;
       }
     };

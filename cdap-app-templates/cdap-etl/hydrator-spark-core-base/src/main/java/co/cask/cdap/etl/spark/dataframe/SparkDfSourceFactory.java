@@ -14,7 +14,7 @@
  * the License.
  */
 
-package co.cask.cdap.etl.spark.batch;
+package co.cask.cdap.etl.spark.dataframe;
 
 import co.cask.cdap.api.data.batch.Input;
 import co.cask.cdap.api.data.batch.InputFormatProvider;
@@ -23,6 +23,9 @@ import co.cask.cdap.api.data.format.FormatSpecification;
 import co.cask.cdap.api.data.format.StructuredRecord;
 import co.cask.cdap.api.spark.JavaSparkExecutionContext;
 import co.cask.cdap.api.stream.StreamEventDecoder;
+//import co.cask.cdap.etl.spark.batch.BatchSparkPipelineDriver;
+import co.cask.cdap.etl.spark.batch.DatasetInfo;
+//import co.cask.cdap.etl.spark.batch.SparkBatchSourceContext;
 import com.google.common.base.Objects;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
@@ -30,6 +33,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.SparkSession;
 import scala.Tuple2;
 
 import java.util.HashMap;
@@ -42,16 +46,16 @@ import static java.lang.Thread.currentThread;
 
 /**
  * A POJO class for storing source information being set from {@link SparkBatchSourceContext} and used in
- * {@link BatchSparkPipelineDriver}.
+ * {@link BatchDfPipelineDriver}.
  */
-public final class SparkBatchSourceFactory {
+public final class SparkDfSourceFactory {
 
   private final Map<String, Input.StreamInput> streams;
   private final Map<String, InputFormatProvider> inputFormatProviders;
   private final Map<String, DatasetInfo> datasetInfos;
   private final Map<String, Set<String>> sourceInputs;
 
-  SparkBatchSourceFactory() {
+  SparkDfSourceFactory() {
     this.streams = new HashMap<>();
     this.inputFormatProviders = new HashMap<>();
     this.datasetInfos = new HashMap<>();
@@ -102,83 +106,85 @@ public final class SparkBatchSourceFactory {
     }
   }
 
-  public <K, V> JavaPairRDD<K, V> createRDD(JavaSparkExecutionContext sec, JavaSparkContext jsc, String sourceName,
-                                            Class<K> keyClass, Class<V> valueClass) {
-    Set<String> inputNames = sourceInputs.get(sourceName);
-    if (inputNames == null || inputNames.isEmpty()) {
-      // should never happen if validation happened correctly at pipeline configure time
-      throw new IllegalArgumentException(
-        sourceName + " has no input. Please check that the source calls setInput at some input.");
-    }
+  public <T> CDataset<T> createDf(JavaSparkExecutionContext sec, SparkSession sparkSession, String sourceName) {
 
-    JavaPairRDD<K, V> inputRDD = JavaPairRDD.fromJavaRDD(jsc.<Tuple2<K, V>>emptyRDD());
-    for (String inputName : inputNames) {
-      inputRDD = inputRDD.union(createInputRDD(sec, jsc, inputName, keyClass, valueClass));
-    }
-    return inputRDD;
+//    Set<String> inputNames = sourceInputs.get(sourceName);
+//    if (inputNames == null || inputNames.isEmpty()) {
+//      // should never happen if validation happened correctly at pipeline configure time
+//      throw new IllegalArgumentException(
+//        sourceName + " has no input. Please check that the source calls setInput at some input.");
+//    }
+//
+//    JavaPairRDD<K, V> inputRDD = JavaPairRDD.fromJavaRDD(jsc.<Tuple2<K, V>>emptyRDD());
+//    for (String inputName : inputNames) {
+//      inputRDD = inputRDD.union(createInputRDD(sec, jsc, inputName, keyClass, valueClass));
+//    }
+//    return inputRDD;
+
+    throw new UnsupportedOperationException("not implemented yet");
   }
 
   @SuppressWarnings("unchecked")
-  private <K, V> JavaPairRDD<K, V> createInputRDD(JavaSparkExecutionContext sec, JavaSparkContext jsc, String inputName,
-                                                  Class<K> keyClass, Class<V> valueClass) {
-    if (streams.containsKey(inputName)) {
-      Input.StreamInput streamInput = streams.get(inputName);
-      FormatSpecification formatSpec = streamInput.getBodyFormatSpec();
-      if (formatSpec != null) {
-        return (JavaPairRDD<K, V>) sec.fromStream(streamInput.getName(),
-                                                  formatSpec,
-                                                  streamInput.getStartTime(),
-                                                  streamInput.getEndTime(),
-                                                  StructuredRecord.class);
-      }
-
-      String decoderType = streamInput.getDecoderType();
-      if (decoderType == null) {
-        return (JavaPairRDD<K, V>) sec.fromStream(streamInput.getName(),
-                                                  streamInput.getStartTime(),
-                                                  streamInput.getEndTime(),
-                                                  valueClass);
-      } else {
-        try {
-          Class<StreamEventDecoder<K, V>> decoderClass =
-            (Class<StreamEventDecoder<K, V>>) Thread.currentThread().getContextClassLoader().loadClass(decoderType);
-          return sec.fromStream(streamInput.getName(),
-                                streamInput.getStartTime(),
-                                streamInput.getEndTime(),
-                                decoderClass, keyClass, valueClass);
-        } catch (Exception e) {
-          throw Throwables.propagate(e);
-        }
-      }
-    }
-
-    if (inputFormatProviders.containsKey(inputName)) {
-      InputFormatProvider inputFormatProvider = inputFormatProviders.get(inputName);
-      Configuration hConf = new Configuration();
-      hConf.clear();
-      for (Map.Entry<String, String> entry : inputFormatProvider.getInputFormatConfiguration().entrySet()) {
-        hConf.set(entry.getKey(), entry.getValue());
-      }
-      ClassLoader classLoader = Objects.firstNonNull(currentThread().getContextClassLoader(),
-                                                     getClass().getClassLoader());
-      try {
-        @SuppressWarnings("unchecked")
-        Class<InputFormat> inputFormatClass = (Class<InputFormat>) classLoader.loadClass(
-          inputFormatProvider.getInputFormatClassName());
-        return jsc.newAPIHadoopRDD(hConf, inputFormatClass, keyClass, valueClass);
-      } catch (ClassNotFoundException e) {
-        throw Throwables.propagate(e);
-      }
-    }
-
-    if (datasetInfos.containsKey(inputName)) {
-      DatasetInfo datasetInfo = datasetInfos.get(inputName);
-      return sec.fromDataset(datasetInfo.getDatasetName(), datasetInfo.getDatasetArgs());
-    }
-    // This should never happen since the constructor is private and it only get calls from static create() methods
-    // which make sure one and only one of those source type will be specified.
-    throw new IllegalStateException("Unknown source type");
-  }
+//  private <T> CDataset<T> createInputDf(JavaSparkExecutionContext sec, SparkSession sparkSession, String inputName,
+//                                                  Class<K> keyClass, Class<V> valueClass) {
+//    if (streams.containsKey(inputName)) {
+//      Input.StreamInput streamInput = streams.get(inputName);
+//      FormatSpecification formatSpec = streamInput.getBodyFormatSpec();
+//      if (formatSpec != null) {
+//        return (JavaPairRDD<K, V>) sec.fromStream(streamInput.getName(),
+//                                                  formatSpec,
+//                                                  streamInput.getStartTime(),
+//                                                  streamInput.getEndTime(),
+//                                                  StructuredRecord.class);
+//      }
+//
+//      String decoderType = streamInput.getDecoderType();
+//      if (decoderType == null) {
+//        return (JavaPairRDD<K, V>) sec.fromStream(streamInput.getName(),
+//                                                  streamInput.getStartTime(),
+//                                                  streamInput.getEndTime(),
+//                                                  valueClass);
+//      } else {
+//        try {
+//          Class<StreamEventDecoder<K, V>> decoderClass =
+//            (Class<StreamEventDecoder<K, V>>) Thread.currentThread().getContextClassLoader().loadClass(decoderType);
+//          return sec.fromStream(streamInput.getName(),
+//                                streamInput.getStartTime(),
+//                                streamInput.getEndTime(),
+//                                decoderClass, keyClass, valueClass);
+//        } catch (Exception e) {
+//          throw Throwables.propagate(e);
+//        }
+//      }
+//    }
+//
+//    if (inputFormatProviders.containsKey(inputName)) {
+//      InputFormatProvider inputFormatProvider = inputFormatProviders.get(inputName);
+//      Configuration hConf = new Configuration();
+//      hConf.clear();
+//      for (Map.Entry<String, String> entry : inputFormatProvider.getInputFormatConfiguration().entrySet()) {
+//        hConf.set(entry.getKey(), entry.getValue());
+//      }
+//      ClassLoader classLoader = Objects.firstNonNull(currentThread().getContextClassLoader(),
+//                                                     getClass().getClassLoader());
+//      try {
+//        @SuppressWarnings("unchecked")
+//        Class<InputFormat> inputFormatClass = (Class<InputFormat>) classLoader.loadClass(
+//          inputFormatProvider.getInputFormatClassName());
+//        return jsc.newAPIHadoopRDD(hConf, inputFormatClass, keyClass, valueClass);
+//      } catch (ClassNotFoundException e) {
+//        throw Throwables.propagate(e);
+//      }
+//    }
+//
+//    if (datasetInfos.containsKey(inputName)) {
+//      DatasetInfo datasetInfo = datasetInfos.get(inputName);
+//      return sec.fromDataset(datasetInfo.getDatasetName(), datasetInfo.getDatasetArgs());
+//    }
+//    // This should never happen since the constructor is private and it only get calls from static create() methods
+//    // which make sure one and only one of those source type will be specified.
+//    throw new IllegalStateException("Unknown source type");
+//  }
 
   private void addStageInput(String stageName, String inputName) {
     Set<String> inputs = sourceInputs.get(stageName);

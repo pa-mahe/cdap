@@ -21,6 +21,7 @@ import co.cask.cdap.api.preview.DataTracer;
 import co.cask.cdap.etl.api.StageMetrics;
 import co.cask.cdap.etl.common.DefaultStageMetrics;
 import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.MapFunction;
 
 import javax.annotation.Nullable;
 
@@ -29,7 +30,7 @@ import javax.annotation.Nullable;
  *
  * @param <T> the type of input object
  */
-public class CountingFunction<T> implements Function<T, T> {
+public class CountingFunction<T> implements MapFunction<T, T>, Function<T,T> {
   private final String stageName;
   private final Metrics metrics;
   private final String metricName;

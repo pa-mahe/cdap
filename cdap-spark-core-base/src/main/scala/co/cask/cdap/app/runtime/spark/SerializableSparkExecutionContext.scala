@@ -30,6 +30,7 @@ import co.cask.cdap.api.spark.SparkExecutionContext
 import co.cask.cdap.api.spark.dynamic.SparkInterpreter
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.SparkSession
 
 import scala.reflect.ClassTag
 
@@ -90,15 +91,15 @@ class SerializableSparkExecutionContext(val delegate: SparkExecutionContext) ext
                                       (implicit decoder: (StreamEvent) => T) =
     delegate.fromStream(sc, streamName, startTime, endTime)
 
-  override def fromDataset[K: ClassTag, V: ClassTag](sc: SparkContext, namespace: String,
+  override def fromDataset[K: ClassTag, V: ClassTag](sparkSession: SparkSession, namespace: String,
                                                      datasetName: String, arguments: Map[String, String],
                                                      splits: Option[Iterable[_ <: Split]]) =
-    delegate.fromDataset[K, V](sc, namespace, datasetName, arguments, splits)
+    delegate.fromDataset[K, V](sparkSession, namespace, datasetName, arguments, splits)
 
-  override def fromDataset[K: ClassTag, V: ClassTag](sc: SparkContext, datasetName: String,
+  override def fromDataset[K: ClassTag, V: ClassTag](sparkSession: SparkSession, datasetName: String,
                                                      arguments: Map[String, String],
                                                      splits: Option[Iterable[_ <: Split]]) =
-    delegate.fromDataset[K, V](sc, datasetName, arguments, splits)
+    delegate.fromDataset[K, V](sparkSession, datasetName, arguments, splits)
 
   override def getLocalizationContext = delegate.getLocalizationContext
 

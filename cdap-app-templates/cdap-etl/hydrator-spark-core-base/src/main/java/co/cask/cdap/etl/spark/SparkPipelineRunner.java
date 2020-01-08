@@ -33,6 +33,9 @@ import co.cask.cdap.etl.api.batch.BatchSink;
 import co.cask.cdap.etl.api.batch.SparkCompute;
 import co.cask.cdap.etl.api.batch.SparkJoiner;
 import co.cask.cdap.etl.api.batch.SparkSink;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeCompute;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeSink;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeSource;
 import co.cask.cdap.etl.api.streaming.Windower;
 import co.cask.cdap.etl.common.BasicArguments;
 import co.cask.cdap.etl.common.Constants;
@@ -55,7 +58,8 @@ import co.cask.cdap.etl.spec.StageSpec;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaSparkContext;
+//import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,7 +105,7 @@ public abstract class SparkPipelineRunner {
                           Map<String, Integer> stagePartitions,
                           PluginContext pluginContext,
                           Map<String, StageStatisticsCollector> collectors,
-                          JavaSparkContext jsc) throws Exception {
+                          SparkSession sparkSession) throws Exception {
 
     MacroEvaluator macroEvaluator =
       new DefaultMacroEvaluator(new BasicArguments(sec),
@@ -109,7 +113,7 @@ public abstract class SparkPipelineRunner {
                                 sec.getNamespace());
     Map<String, EmittedRecords> emittedRecords = new HashMap<>();
 
-    boolean autoCache = jsc.getConf().getBoolean(Constants.SPARK_PIPELINE_AUTOCACHE_ENABLE_FLAG, true);
+    boolean autoCache = sparkSession.sparkContext().getConf().getBoolean(Constants.SPARK_PIPELINE_AUTOCACHE_ENABLE_FLAG, true);
 
     // should never happen, but removes warning
     if (pipelinePhase.getDag() == null) {
@@ -247,7 +251,26 @@ public abstract class SparkPipelineRunner {
         SparkCompute<Object, Object> sparkCompute = pluginContext.newPluginInstance(stageName, macroEvaluator);
         emittedBuilder = emittedBuilder.setOutput(stageData.compute(stageSpec, sparkCompute));
 
-      } else if (SparkSink.PLUGIN_TYPE.equals(pluginType)) {
+      } else if (SparkDataframeCompute.PLUGIN_TYPE.equals(pluginType)) {
+
+        SparkDataframeCompute<Object, Object> sparkCompute = pluginContext.newPluginInstance(stageName, macroEvaluator);
+        emittedBuilder = emittedBuilder.setOutput(stageData.compute(stageSpec, sparkCompute));
+
+      } else if (SparkDataframeSink.PLUGIN_TYPE.equals(pluginType)) {
+
+        SparkDataframeSink<Object> sparkSink = pluginContext.newPluginInstance(stageName, macroEvaluator);
+        sinkRunnables.add(stageData.createStoreTask(stageSpec, sparkSink));
+
+      }
+
+//      else if (SparkDataframeSource.PLUGIN_TYPE.equals(pluginType)) {
+//
+//        SparkDataframeSource<Object> sparkSource = pluginContext.newPluginInstance(stageName, macroEvaluator);
+//        sinkRunnables.add(stageData.createStoreTask(stageSpec, sparkSource));
+//
+//      }
+
+      else if (SparkSink.PLUGIN_TYPE.equals(pluginType)) {
 
         SparkSink<Object> sparkSink = pluginContext.newPluginInstance(stageName, macroEvaluator);
         sinkRunnables.add(stageData.createStoreTask(stageSpec, sparkSink));

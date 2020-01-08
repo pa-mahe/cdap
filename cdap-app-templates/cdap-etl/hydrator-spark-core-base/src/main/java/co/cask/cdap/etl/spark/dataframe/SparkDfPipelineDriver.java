@@ -14,7 +14,7 @@
  * the License.
  */
 
-package co.cask.cdap.etl.spark.batch;
+package co.cask.cdap.etl.spark.dataframe;
 
 import co.cask.cdap.api.Transactionals;
 import co.cask.cdap.api.TxRunnable;
@@ -27,7 +27,6 @@ import co.cask.cdap.api.spark.JavaSparkMain;
 import co.cask.cdap.api.workflow.WorkflowToken;
 import co.cask.cdap.etl.api.JoinElement;
 import co.cask.cdap.etl.api.batch.BatchSource;
-import co.cask.cdap.etl.api.batch.SparkCompute;
 import co.cask.cdap.etl.api.batch.SparkExecutionPluginContext;
 import co.cask.cdap.etl.api.batch.SparkJoiner;
 import co.cask.cdap.etl.batch.BatchPhaseSpec;
@@ -44,6 +43,7 @@ import co.cask.cdap.etl.spark.SparkPairCollection;
 import co.cask.cdap.etl.spark.SparkPipelineRunner;
 import co.cask.cdap.etl.spark.SparkPipelineRuntime;
 import co.cask.cdap.etl.spark.SparkStageStatisticsCollector;
+import co.cask.cdap.etl.spark.batch.*;
 import co.cask.cdap.etl.spark.function.*;
 import co.cask.cdap.etl.spec.StageSpec;
 import co.cask.cdap.internal.io.SchemaTypeAdapter;
@@ -52,8 +52,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.spark.api.java.JavaRDD;
 //import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.sql.SparkSession;
 
 
@@ -66,10 +64,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import co.cask.cdap.etl.spark.batch.DatasetInfo;
+
 /**
  * Batch Spark pipeline driver.
  */
-public class BatchSparkPipelineDriver extends SparkPipelineRunner implements JavaSparkMain, TxRunnable {
+public class SparkDfPipelineDriver extends SparkPipelineRunner implements JavaSparkMain, TxRunnable {
   private static final Gson GSON = new GsonBuilder()
     .registerTypeAdapter(SetMultimap.class, new SetMultimapCodec<>())
     .registerTypeAdapter(Schema.class, new SchemaTypeAdapter())
@@ -81,8 +81,8 @@ public class BatchSparkPipelineDriver extends SparkPipelineRunner implements Jav
   //private transient JavaSparkContext jsc;
   private transient SparkSession sparkSession;
   private transient JavaSparkExecutionContext sec;
-  private transient SparkBatchSourceFactory sourceFactory;
-  private transient SparkBatchSinkFactory sinkFactory;
+  private transient SparkDfSourceFactory sourceFactory;
+  private transient SparkDfSinkFactory sinkFactory;
   private transient DatasetContext datasetContext;
   private transient Map<String, Integer> stagePartitions;
   private transient int numOfRecordsPreview;
@@ -90,8 +90,8 @@ public class BatchSparkPipelineDriver extends SparkPipelineRunner implements Jav
   @Override
   protected SparkCollection<RecordInfo<Object>> getSource(StageSpec stageSpec, StageStatisticsCollector collector) {
     PluginFunctionContext pluginFunctionContext = new PluginFunctionContext(stageSpec, sec, collector);
-    return new RDDCollection<>(sec, sparkSession, datasetContext, sinkFactory,
-                               sourceFactory.createRDD(sec, new JavaSparkContext(sparkSession.sparkContext()), stageSpec.getName(), Object.class, Object.class)
+    return new DataframeCollection(sparkSession, sec, datasetContext, sinkFactory,
+                               sourceFactory.createDf(sec, sparkSession, stageSpec.getName())
                                  .flatMap(Compat.convert(new BatchSourceFunction(pluginFunctionContext,
                                                                                  numOfRecordsPreview))));
   }
@@ -121,7 +121,6 @@ public class BatchSparkPipelineDriver extends SparkPipelineRunner implements Jav
       StageStatisticsCollector collector) throws Exception {
     PluginFunctionContext pluginFunctionContext = new PluginFunctionContext(stageSpec, sec, collector);
 
-
     SparkJoiner<Object> sparkJoiner = pluginFunctionContext.createPlugin();
 
     SparkPipelineRuntime pipelineRuntime = new SparkPipelineRuntime(sec);
@@ -139,7 +138,7 @@ public class BatchSparkPipelineDriver extends SparkPipelineRunner implements Jav
     JavaRDD<?> joinedRDD = sparkJoiner.join(pluginContext, data)
         .map(new CountingFunction<>(stageSpec.getName(), sec.getMetrics(),
             "records.out", sec.getDataTracer(stageSpec.getName())));
-    return new RDDCollection<Object>(sec, sparkSession, datasetContext, sinkFactory, (JavaRDD<Object>) joinedRDD);
+    return new DataframeCollection(sparkSession, sec, datasetContext, sinkFactory, new CDataset(joinedRDD));
 
   }
 
@@ -162,7 +161,7 @@ public class BatchSparkPipelineDriver extends SparkPipelineRunner implements Jav
     Path configFile = sec.getLocalizationContext().getLocalFile("HydratorSpark.config").toPath();
     try (BufferedReader reader = Files.newBufferedReader(configFile, StandardCharsets.UTF_8)) {
       String object = reader.readLine();
-      SparkBatchSourceSinkFactoryInfo sourceSinkInfo = GSON.fromJson(object, SparkBatchSourceSinkFactoryInfo.class);
+      SparkDfSourceSinkFactoryInfo sourceSinkInfo = GSON.fromJson(object, SparkDfSourceSinkFactoryInfo.class);
       sourceFactory = sourceSinkInfo.getSparkBatchSourceFactory();
       sinkFactory = sourceSinkInfo.getSparkBatchSinkFactory();
       stagePartitions = sourceSinkInfo.getStagePartitions();
