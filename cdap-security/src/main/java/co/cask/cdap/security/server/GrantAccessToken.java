@@ -16,6 +16,7 @@
 
 package co.cask.cdap.security.server;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.knox.gateway.services.security.token.impl.JWT;
 import org.apache.knox.gateway.services.security.token.impl.JWTToken;
 import org.apache.knox.gateway.util.CertificateUtils;
@@ -43,6 +44,7 @@ import org.keycloak.OAuth2Constants;
 import org.keycloak.adapters.KeycloakDeployment;
 import org.keycloak.adapters.KeycloakDeploymentBuilder;
 import org.keycloak.adapters.rotation.AdapterTokenVerifier;
+import org.keycloak.authorization.client.Configuration;
 import org.keycloak.common.VerificationException;
 
 import org.slf4j.Logger;
@@ -50,10 +52,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.security.interfaces.RSAPublicKey;
-import java.util.Date;
+import java.util.*;
 import java.text.ParseException;
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import javax.security.auth.Subject;
 import javax.servlet.ServletException;
@@ -90,7 +90,6 @@ public class GrantAccessToken {
         this.conf = cConf;
         this.tokenExpiration = cConf.getLong(Constants.Security.TOKEN_EXPIRATION);
         this.extendedTokenExpiration = cConf.getLong(Constants.Security.EXTENDED_TOKEN_EXPIRATION);
-        this.deployment = createKeycloakDeployment(cConf.getResource("cdap-site.xml").getPath());
     }
 
     /**
@@ -98,6 +97,7 @@ public class GrantAccessToken {
      */
     public void init() {
         tokenManager.start();
+        this.deployment = createKeycloakDeployment(conf);
     }
 
     /**
@@ -115,8 +115,6 @@ public class GrantAccessToken {
         public static final String GET_TOKEN_FROM_KNOX = "knoxToken";
         public static final String GET_EXTENDED_TOKEN = "extendedtoken";
         public static final String GET_TOKEN_FROM_KEYCLOAK = "keycloakToken";
-        public static final String GET_REFRESH_TOKEN = "refreshToken";
-        public static final String LOGOUT_END_POINT = "logout";
     }
 
 
@@ -381,45 +379,19 @@ public class GrantAccessToken {
 
     }
 
-    public static KeycloakDeployment createKeycloakDeployment(String Configfile) {
+    public static KeycloakDeployment createKeycloakDeployment(CConfiguration cConf){
+        if(deployment!=null)
+            return deployment;
 
+        String filepath = cConf.get("security.authentication.handler.keycloak-config-file");
         try {
-            File xmlFile = new File(Configfile);
-            Reader fileReader = new FileReader(xmlFile);
-            BufferedReader bufReader = new BufferedReader(fileReader);
-            boolean flag = false;
-            StringBuilder sb = new StringBuilder();
-            String line = bufReader.readLine().trim();
-            while (line != null) {
-                if (line.endsWith("</keycloakConfiguration>")) {
-                    flag = false;
-                    break;
-                }
-                if (line.endsWith("<keycloakConfiguration>") || flag == true) {
-                    if (flag)
-                        sb.append(line).append("\n");
-                    flag = true;
-                }
-                line = bufReader.readLine().trim();
-            }
-
-            if (sb.length() != 0) {
-                String xml2String = sb.toString();
-
-                JSONObject obj = XML.toJSONObject(xml2String);
-                String str = obj.toString();
-                InputStream is = new ByteArrayInputStream(str.getBytes());
-
-                KeycloakDeployment deployment = KeycloakDeploymentBuilder.build(is);
-                System.out.println(deployment.getRealm());
-                return deployment;
-            } else {
-                throw new RuntimeException("Keycloak configuration is not defined");
-            }
-
-        } catch (Exception ex) {
-            throw new RuntimeException(ex.getMessage());
+            InputStream inputStream = new FileInputStream(new File(filepath));
+            deployment = KeycloakDeploymentBuilder.build(inputStream);
+        }catch (IOException ex){
+            throw new RuntimeException("Keycloak config file not found on the path "+filepath);
+        }catch (Exception ex){
+            throw new RuntimeException("Error Occured while creating keycloak deployment");
         }
-
+        return deployment;
     }
 }

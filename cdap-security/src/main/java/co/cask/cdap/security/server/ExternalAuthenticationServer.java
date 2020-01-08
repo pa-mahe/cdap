@@ -239,7 +239,7 @@ public class ExternalAuthenticationServer extends AbstractIdleService {
 
     copyProps(handlerProps, getAuthHandlerConfigs(cConfiguration));
     copyProps(handlerProps, getAuthHandlerConfigs(sConfiguration));
-
+    copyProps(handlerProps, getAuthorizationHandlerConfigs(sConfiguration));
     authenticationHandler.init(handlerProps);
     grantAccessToken.init();
   }
@@ -265,6 +265,22 @@ public class ExternalAuthenticationServer extends AbstractIdleService {
 
   private Map<String, String> getAuthHandlerConfigs(Configuration configuration) {
     String prefix = Constants.Security.AUTH_HANDLER_CONFIG_BASE;
+    int prefixLen = prefix.length();
+    // since its a regex match, we want to look for the character '.', and not match any character
+    String configRegex = "^" + prefix.replace(".", "\\.");
+
+    Map<String, String> props = new HashMap<>();
+    for (Map.Entry<String, String> pair : configuration.getValByRegex(configRegex).entrySet()) {
+      String key = pair.getKey();
+      // we get the value via the conf, because conf#getValByRegex does not do variable substitution
+      String value = configuration.get(key);
+      props.put(key.substring(prefixLen), value);
+    }
+    return props;
+  }
+
+  private Map<String, String> getAuthorizationHandlerConfigs(Configuration configuration) {
+    String prefix = Constants.Security.Authorization.EXTENSION_CONFIG_PREFIX;
     int prefixLen = prefix.length();
     // since its a regex match, we want to look for the character '.', and not match any character
     String configRegex = "^" + prefix.replace(".", "\\.");
