@@ -115,7 +115,7 @@
     <junit.version>4.11</junit.version>
     <kafka.version>0.8.2.2</kafka.version>
     <mockftp.version>2.6</mockftp.version>
-    <snappy.version>1.1.2.6</snappy.version>
+    <snappy.version>1.0.4.1</snappy.version>
     <slf4j.version>1.7.5</slf4j.version>
     <twill.version>0.9.0</twill.version>
     <twitter4j.version>4.0.3</twitter4j.version>
