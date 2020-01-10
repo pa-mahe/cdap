@@ -17,6 +17,8 @@
 /* global require, module, process, __dirname */
 var UrlValidator = require('./urlValidator.js');
 var JSZip = require('jszip');
+var jwtDecode = require('jwt-decode');
+
 
 module.exports = {
   getApp: function () {
@@ -209,7 +211,8 @@ function makeApp(authAddress, cdapConfig, uiSettings) {
       securityEnabled: authAddress.enabled,
       isEnterprise: isModeProduction(),
       sandboxMode: process.env.NODE_ENV,
-      authRefreshURL: cdapConfig['dashboard.auth.refresh.path'] || false
+      authRefreshURL: cdapConfig['dashboard.auth.refresh.path'] || false,
+
     });
 
     res.header({
@@ -220,13 +223,27 @@ function makeApp(authAddress, cdapConfig, uiSettings) {
     res.send('window.CDAP_CONFIG = '+data+';');
   });
 
+
+  app.get('/keycloak-enable', function (req, res) {
+    res.json({enable: cdapConfig['keyclock.enable']});
+  });
+
   app.get('/keycloak-config', function (req, res) {
+
+    var keycloakAuthURL = [
+      cdapConfig['ssl.external.enabled'] === 'true' ? 'https://' : 'http://',
+      cdapConfig['router.server.address'],
+      ':',
+      '8180',
+      cdapConfig['keyclock.server.port'] ,
+      '/auth'
+    ].join('');
     var config = {
-      'realm': "dev",
-      'url': "http://192.168.154.194:8180/auth",
-      'clientId': 'backend-client',
+      'realm': cdapConfig['keyclock.realm'],
+      'url': keycloakAuthURL,
+      'clientId': cdapConfig['keyclock.clientId'],
       'credentials': {
-        'secret': 'd0c0dd65-28fe-4bae-a35e-010651bce3f2'
+      'secret': cdapConfig['keyclock.secret.key']
       }
     };
     res.json(config);
@@ -505,39 +522,46 @@ function makeApp(authAddress, cdapConfig, uiSettings) {
     res.header({
       'Connection': 'close'
     });
+
     const onInvalidKeyCloakToken = function(errObj) {
-      log.error('INVALID KEYCLOAK TOKEN', errObj);
+      log.error('INVALID KEYCLOAK TOKEN .............................');
           var err = {
             error: errObj,
             message: 'INVALID KEYCLOAK TOKEN',
           };
           res.status(err.statusCode?err.statusCode:402).send(err);
     };
-    var keycloakToken = req.cookies['Keycloak_Token'];
+    var keycloakToken = req.headers['keycloak_token'];
     if (!keycloakToken) {
       onInvalidKeyCloakToken({error: 'Token not found'});
       return;
     }
 
-    var userName = 'test'; // need to find from token
+    var userName = jwtDecode(keycloakToken)['user_name'];
+    if (!userName ) {
+      onInvalidKeyCloakToken({error: 'Username not found'});
+      return;
+    }
+
     var keycloakURL = [
       cdapConfig['ssl.external.enabled'] === 'true' ? 'https://' : 'http://',
       cdapConfig['router.server.address'],
       ':',
-      cdapConfig['ssl.external.enabled'] === 'true' ? '10010' : '10009',
+      cdapConfig['ssl.external.enabled'] === 'true' ? cdapConfig['router.ssl.server.port'] : cdapConfig['router.server.port'],
       '/keycloakToken'
     ].join('');
     log.info('AUTH ->' + keycloakURL);
     var options = {
       url: keycloakURL,
       headers: {
-        'keycloak': keycloakToken
+        'keycloakToken': keycloakToken
       }
     };
     request(options, (error, response, body) => {
       if (error) {
         onInvalidKeyCloakToken(error);
       } else if (response) {
+        log.info('response  .................................  ', response.statusCode);
         if (response.statusCode === 200) {
           var respObj = {};
           if (body) {

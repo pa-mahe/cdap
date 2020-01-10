@@ -14,7 +14,7 @@
  * the License.
  */
 
-import React, {Component} from 'react';
+import React, { Component } from 'react';
 import ReactDOM from 'react-dom';
 import 'whatwg-fetch';
 import cookie from 'react-cookie';
@@ -26,11 +26,11 @@ import * as util from './utils';
 import Footer from '../cdap/components/Footer';
 import ValidatedInput from '../cdap/components/ValidatedInput';
 import types from '../cdap/services/inputValidationTemplates';
+import Keycloak from 'keycloak-js';
 
 require('./styles/lib-styles.scss');
 require('./login.scss');
 import T from 'i18n-react';
-import Secured from './secured';
 T.setTexts(require('./text/text-en.yaml'));
 
 class Login extends Component {
@@ -43,10 +43,12 @@ class Login extends Component {
       formState: false,
       rememberUser: false,
       inputs: this.getValidationState(),
-      showLoginPage: false,
-      useSecured: false
+      keycloakEnable: true,
+      authenticated: false
     };
+    this.checkKeycloak();
   }
+
 
   getValidationState = () => {
     return {
@@ -72,7 +74,7 @@ class Login extends Component {
     }
     fetch('/login', {
       method: 'POST',
-      headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: this.state.username,
         password: this.state.password
@@ -89,17 +91,17 @@ class Login extends Component {
         }
       })
       .then((res) => {
-        cookie.save('CDAP_Auth_Token', res.access_token, { path: '/'});
-        cookie.save('CDAP_Auth_User', this.state.username, { path: '/'});
+        cookie.save('CDAP_Auth_Token', res.access_token, { path: '/' });
+        cookie.save('CDAP_Auth_User', this.state.username, { path: '/' });
         var queryObj = util.getQueryParams(location.search);
-        queryObj.redirectUrl = queryObj.redirectUrl || (location.pathname.endsWith('/login') ? '/': location.pathname);
+        queryObj.redirectUrl = queryObj.redirectUrl || (location.pathname.endsWith('/login') ? '/' : location.pathname);
         window.location.href = queryObj.redirectUrl;
       });
   }
 
   onUsernameUpdate(e) {
 
-    let inputsValue = {...this.state.inputs};
+    let inputsValue = { ...this.state.inputs };
     const isValid = types[this.state.inputs.name.template].validate(e.target.value);
     let errorMsg = '';
     if (e.target.value && !isValid) {
@@ -116,7 +118,7 @@ class Login extends Component {
   }
 
   onPasswordUpdate(e) {
-    let inputsValue = {...this.state.inputs};
+    let inputsValue = { ...this.state.inputs };
     const isValid = types[this.state.inputs.password.template].validate(e.target.value);
     let errorMsg = '';
     if (e.target.value && !isValid) {
@@ -138,43 +140,69 @@ class Login extends Component {
     });
   }
 
-  setKeyCloackAuthentication(authenticated) {
-    this.setState({
-      isKeyCloackAuthenticated: authenticated
-    });
-  }
-
-  getCdapToken = () => {
+  getCdapToken = (token) => {
     fetch(('/cdapToken'), {
       method: 'GET',
-      headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Keycloak_Token': token },
     })
       .then((response) => {
         if (response.status >= 200 && response.status < 300) {
           return response.json();
         } else {
-          this.setState({useSecured: true});
           return Promise.reject();
         }
       })
       .then((res) => {
-        cookie.save('CDAP_Auth_Token', res.access_token, { path: '/'});
-        cookie.save('CDAP_Auth_User', res.userName, { path: '/'});
+        cookie.save('CDAP_Auth_Token', res.access_token, { path: '/' });
+        cookie.save('CDAP_Auth_User', res.userName, { path: '/' });
         var queryObj = util.getQueryParams(location.search);
         queryObj.redirectUrl = queryObj.redirectUrl || (location.pathname.endsWith('/login') ? '/' : location.pathname);
         window.location.href = queryObj.redirectUrl;
-        this.setState({useSecured: false});
       });
   }
 
-  componentWillMount() {
+  checkKeycloak = () => {
+    fetch("/keycloak-enable").then((response) => {
+      if (response.status >= 200 && response.status < 300) {
+        return response.json();
+      } else {
+        return Promise.reject();
+      }
+    })
+    .then((resp) => {
+      var isEnable = resp ? resp.enable : false;
+      this.setState({ keycloakEnable: isEnable });
+      this.getKeycloakConfig();
+    });
+  }
+
+  getKeycloakConfig = () => {
     let keycloakToken = cookie.load('Keycloak_Token');
     if (keycloakToken) {
       this.getCdapToken(keycloakToken);
     } else {
-      if (!this.showLoginPage) {
-        this.setState({useSecured: true});
-      }
+      fetch("/keycloak-config").then((response) => {
+        if (response.status >= 200 && response.status < 300) {
+          return response.json();
+        } else {
+          return Promise.reject();
+        }
+      })
+        .then((config) => {
+          const keycloak = Keycloak(config);
+          keycloak.init(
+            {
+              onLoad: 'login-required',
+              checkLoginIframe: false,
+              promiseType: 'native'
+            }).then(authenticated => {
+              this.setState({ authenticated: authenticated });
+              cookie.save('Keycloak_Refresh_Token', keycloak.refreshToken, { path: '/' });
+              cookie.save('Keycloak_Token', keycloak.token, { path: '/' });
+              cookie.save('Keycloak_Id_Token', keycloak.idToken, { path: '/' });
+              this.getCdapToken(keycloak.token);
+            });
+        });
     }
   }
 
@@ -189,7 +217,7 @@ class Login extends Component {
       );
     }
 
-    return (this.state.showLoginPage ? 
+    return (!this.state.keycloakEnable ?
       <div>
         <Card footer={footer}>
           <div className="cdap-logo"></div>
@@ -199,22 +227,22 @@ class Login extends Component {
           >
             <div className="form-group">
               <ValidatedInput
-                  type="text"
-                  label={this.state.inputs.name.label}
-                  placeholder={T.translate('login.placeholders.username')}
-                  validationError={this.state.inputs.name.error}
-                  value={this.state.username}
-                  onChange={this.onUsernameUpdate.bind(this)}
-                />
+                type="text"
+                label={this.state.inputs.name.label}
+                placeholder={T.translate('login.placeholders.username')}
+                validationError={this.state.inputs.name.error}
+                value={this.state.username}
+                onChange={this.onUsernameUpdate.bind(this)}
+              />
             </div>
             <div className="form-group">
               <ValidatedInput
-                    type="password"
-                    label={this.state.inputs.password.label}
-                    placeholder={T.translate('login.placeholders.password')}
-                    validationError={this.state.inputs.password.error}
-                    onChange={this.onPasswordUpdate.bind(this)}
-                  />
+                type="password"
+                label={this.state.inputs.password.label}
+                placeholder={T.translate('login.placeholders.password')}
+                validationError={this.state.inputs.password.error}
+                onChange={this.onPasswordUpdate.bind(this)}
+              />
             </div>
             <div className="form-group">
               <div className="clearfix">
@@ -227,7 +255,7 @@ class Login extends Component {
                         value={this.state.rememberUser}
                         onClick={this.rememberUser.bind(this)}
                       />
-                    {T.translate('login.labels.rememberme')}
+                      {T.translate('login.labels.rememberme')}
                     </label>
                   </div>
                 </div>
@@ -246,8 +274,8 @@ class Login extends Component {
             </div>
           </form>
         </Card>
-      </div>:this.state.useSecured?<Secured  setKeyCloackAuthentication = {this.setKeyCloackAuthentication.bind(this)}/>:
-        <div>Checking for secured connection</div>
+      </div> :
+      <div>Checking for secured connection...</div>
     );
   }
 }

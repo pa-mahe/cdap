@@ -20,12 +20,17 @@ import LoadingIndicatorStore, {
 import StatusAlertMessageStore from 'components/StatusAlertMessage/StatusAlertMessageStore';
 import cookie from 'react-cookie';
 import isNil from 'lodash/isNil';
-import {Observable} from 'rxjs/Observable';
-import SystemServicesStore, {pollSystemServices} from 'services/SystemServicesStore';
+import { Observable } from 'rxjs/Observable';
+import SystemServicesStore, { pollSystemServices } from 'services/SystemServicesStore';
+import Keycloak from 'keycloak-js';
+import RedirectToLogin from './redirect-to-login';
 
 let pollingObservable;
 let systemServiceSubscription;
 let retries = 0;
+let keycloakInstance;
+let minKeycloakTokenValidity = 30;
+
 
 const parseAndDispatchBackendStatus = response => {
   /*
@@ -38,6 +43,7 @@ const parseAndDispatchBackendStatus = response => {
     retries += 1;
     return;
   }
+  updateKeyCloak();
   let loadingState = LoadingIndicatorStore.getState().loading;
   if (response.status <= 399) {
     if ([BACKENDSTATUS.NODESERVERDOWN].indexOf(loadingState.status) !== -1) {
@@ -106,7 +112,7 @@ const startServicePolling = () => {
   systemServiceSubscription = SystemServicesStore
     .subscribe(
       () => {
-        let {list: services} = SystemServicesStore.getState().services;
+        let { list: services } = SystemServicesStore.getState().services;
         services = services.filter(service => service.status === 'NOTOK');
         if (services.length) {
           LoadingIndicatorStore.dispatch({
@@ -151,7 +157,77 @@ const stopPolling = () => {
   }
 };
 
+const updateKeycloakToken = (keycloak) => {
+  cookie.save('Keycloak_Refresh_Token', keycloak.refreshToken, { path: '/'});
+  cookie.save('Keycloak_Token', keycloak.token, { path: '/'});
+  cookie.save('Keycloak_Id_Token', keycloak.idToken, { path: '/'});
+};
+
+const initKeyCloak = () => {
+  console.log('status factory intialise keyclok');
+  fetch("/keycloak-config").then((response) => {
+    if (response.status >= 200 && response.status < 300) {
+      return response.json();
+    } else {
+      return Promise.reject();
+    }
+  })
+    .then((config) => {
+      console.log('status factory', config);
+      const keycloak = Keycloak(config);
+      keycloak.init(
+        {
+          onLoad: 'check-sso',
+          token: cookie.load('Keycloak_Token'),
+          refreshToken: cookie.load('Keycloak_Refresh_Token'),
+          idToken: cookie.load('Keycloak_Id_Token'),
+          promiseType: 'native',
+
+        }).then(authenticated => {
+          console.log(" status factory authenticated -> ", authenticated);
+          if (authenticated) {
+            keycloakInstance = keycloak;
+            window['keycloakInstance'] = keycloak;
+            updateKeycloakToken(Keycloak);
+          }
+        });
+    });
+};
+
+const updateKeyCloak = (minValidty = minKeycloakTokenValidity) => {
+  if (keycloakInstance) {
+    keycloakInstance.updateToken(minValidty)
+      .then((refreshed) => {
+        if (refreshed) {
+          updateKeycloakToken(keycloakInstance);
+          cookie.save('Keycloak_Refresh_Token', keycloakInstance.refreshToken, { path: '/' });
+          fetch(('/cdapToken'), {
+            method: 'GET',
+            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Keycloak_Token': keycloakInstance.token },
+          })
+            .then((response) => {
+              if (response.status >= 200 && response.status < 300) {
+                return response.json();
+              } else {
+                return Promise.reject();
+              }
+            })
+            .then((res) => {
+              cookie.save('CDAP_Auth_Token', res.access_token, { path: '/' });
+              cookie.save('CDAP_Auth_User', res.userName, { path: '/' });
+            });
+        }
+      }).catch((error) => {
+        console.log('ubable to update token', error);
+        RedirectToLogin({statusCode: 401});
+      });
+  }
+};
+
 export default {
   startPollingForBackendStatus: startPolling,
-  stopPollingForBackendStatus: stopPolling
+  stopPollingForBackendStatus: stopPolling,
+  updateKeyCloak: updateKeyCloak,
+  initKeyCloak: initKeyCloak
+
 };

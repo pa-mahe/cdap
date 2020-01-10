@@ -14,5 +14,10 @@
   "local.market.base.url": "http://artifacts.ggn.in.guavus.com/ggn-archive/marketplace/v2",
   "ui.theme.file": "cdap-ui/server/config/themes/default.json",
   "default.white.list.ips": "http://market.cask.co,http://artifacts.ggn.in.guavus.com",
-  "white.list.ips": ""
+  "white.list.ips": "",
+  "keyclock.server.port": "8180",
+  "keyclock.clientId": "backend-client",
+  "keyclock.secret.key": "d0c0dd65-28fe-4bae-a35e-010651bce3f2",
+  "keyclock.realm": "dev",
+  "keyclock.enable": true
 }

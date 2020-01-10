@@ -87,6 +87,21 @@ class CDAP extends Component {
         }
       });
     }
+    // Initialize KeyCloak if not present
+    fetch("/keycloak-enable").then((response) => {
+      if (response.status >= 200 && response.status < 300) {
+        return response.json();
+      } else {
+        return Promise.reject();
+      }
+    })
+    .then((resp) => {
+      var isEnable = resp ? resp.enable : false;
+      if(isEnable && !window.keycloakInstance) {
+        StatusFactory.initKeyCloak();
+      }
+    });
+
 
     StatusFactory.startPollingForBackendStatus();
     this.eventEmitter.on(globalEvents.NONAMESPACE, () => {
