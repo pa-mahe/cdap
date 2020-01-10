@@ -90,7 +90,11 @@ public class JASPIAuthenticationHandler extends AbstractAuthenticationHandler {
     };
   }
 
-  protected Authenticator getHandlerAuthenticatorProvider(ServerAuthModule authModule , ServletCallbackHandler callbackHandler){
+
+
+
+  public Authenticator getHandlerAuthenticatorProvider(ServerAuthModule authModule , ServletCallbackHandler callbackHandler){
+
     JaspiAuthenticatorFactory jaspiAuthenticatorFactory = new JaspiAuthenticatorFactory();
     jaspiAuthenticatorFactory.setLoginService(getHandlerLoginService());
 

@@ -174,10 +174,15 @@ public class GrantAccessToken {
             throws IOException, ServletException, UnauthorizedException {
 
         List<String> userGroups = Collections.emptyList();
+        String keycloakTokenString = request.getHeader("keycloakToken");
+        org.keycloak.representations.AccessToken keycloakAccessToken = (org.keycloak.representations.AccessToken)request.getAttribute("keycloakAccessToken");
+        String username = keycloakAccessToken.getPreferredUsername();
         long issueTime = (long) keycloakAccessToken.getIssuedAt() * 1000;
         long expireTime = (long) keycloakAccessToken.getExpiration() * 1000;
-        String username = keycloakAccessToken.getPreferredUsername();
-        AccessToken cdapToken = getCdapToken(username,userGroups,issueTime,expireTime,keycloaktokenString);
+
+        AccessTokenIdentifier tokenIdentifier = new AccessTokenIdentifier(username, userGroups, issueTime, expireTime, keycloakTokenString);
+        AccessToken cdapToken = tokenManager.signIdentifier(tokenIdentifier);
+
         LOG.debug("Issued token for user {}", username);
         return cdapToken;
     }
@@ -302,6 +307,5 @@ public class GrantAccessToken {
         json.addProperty(ExternalAuthenticationServer.ResponseFields.EXPIRES_IN,
                 TimeUnit.SECONDS.convert(tokenValidity, TimeUnit.MILLISECONDS));
         response.getOutputStream().print(json.toString());
-        response.setStatus(HttpServletResponse.SC_OK);
     }
 }

@@ -61,7 +61,8 @@ public class KeycloakAuthModule extends BasicAuthModule {
             if (request.getHeader("keycloakToken") != null) {
                 String keycloakTokenString = request.getHeader("keycloakToken");
                 AccessToken keycloakAccessToken = verifyKeycloakToken(keycloakTokenString);
-                request.setAttribute("keycloakAccessToken", keycloakAccessToken);
+                request.setAttribute("keycloakAccessToken",keycloakAccessToken);
+
                 return AuthStatus.SUCCESS;
             }
 
@@ -77,10 +78,8 @@ public class KeycloakAuthModule extends BasicAuthModule {
         } catch (UnsupportedCallbackException var9) {
             throw new AuthException(var9.getMessage());
         } catch (VerificationException ex) {
-            response.setStatus(401);
-            //throw new AuthException("Keycloak Token is invalid");
+            throw new AuthException("Keycloak Token is invalid");
         }
-        return AuthStatus.SEND_CONTINUE;
     }
 
     private AccessToken verifyKeycloakToken(String keycloakTokenString) throws VerificationException {
@@ -93,15 +92,15 @@ public class KeycloakAuthModule extends BasicAuthModule {
         if (deployment != null)
             return deployment;
 
+        createKeycloakConfigurationFile();
+        String filepath = handlerProps.get("keycloak-config-file");
         try {
-            createKeycloakConfigurationFile();
-            String filepath = handlerProps.get("keycloak-config-file");
             InputStream inputStream = new FileInputStream(new File(filepath));
             deployment = KeycloakDeploymentBuilder.build(inputStream);
         } catch (IOException ex) {
-            throw new RuntimeException("Keycloak config file not found on the path");
+            throw new RuntimeException("Keycloak config file not found on the path " + filepath);
         } catch (Exception ex) {
-            throw new RuntimeException("Error Occured while creating keycloak deployment");
+            throw new RuntimeException("Error Occured while creating keycloak deployment " + ex.getMessage());
         }
         return deployment;
     }
