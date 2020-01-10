@@ -60,21 +60,9 @@ public class JASPIAuthenticationHandler extends AbstractAuthenticationHandler {
 
   @Override
   protected Authenticator getHandlerAuthenticator() {
-    JaspiAuthenticatorFactory jaspiAuthenticatorFactory = new JaspiAuthenticatorFactory();
-    jaspiAuthenticatorFactory.setLoginService(getHandlerLoginService());
-
-    HashMap<String, ServerAuthContext> serverAuthContextMap = new HashMap<>();
     ServletCallbackHandler callbackHandler = new ServletCallbackHandler(getHandlerLoginService());
     ServerAuthModule authModule = new BasicAuthModule(callbackHandler, "JAASRealm");
-    serverAuthContextMap.put("authContextID", new ServerAuthContextImpl(Collections.singletonList(authModule)));
-
-    ServerAuthContextType serverAuthContextType = new ServerAuthContextType("HTTP", "server *",
-                                                                            "authContextID",
-                                                                            new AuthModuleType<ServerAuthModule>());
-    ServerAuthConfigType serverAuthConfigType = new ServerAuthConfigType(serverAuthContextType, true);
-    ServerAuthConfig serverAuthConfig = new ServerAuthConfigImpl(serverAuthConfigType, serverAuthContextMap);
-    return new JaspiAuthenticator(serverAuthConfig, null, callbackHandler,
-                                  new Subject(), true, getHandlerIdentityService());
+    return getHandlerAuthenticatorProvider(authModule,callbackHandler);
   }
 
   @Override
@@ -100,5 +88,21 @@ public class JASPIAuthenticationHandler extends AbstractAuthenticationHandler {
         };
       }
     };
+  }
+
+  public Authenticator getHandlerAuthenticatorProvider(ServerAuthModule authModule , ServletCallbackHandler callbackHandler){
+    JaspiAuthenticatorFactory jaspiAuthenticatorFactory = new JaspiAuthenticatorFactory();
+    jaspiAuthenticatorFactory.setLoginService(getHandlerLoginService());
+
+    HashMap<String, ServerAuthContext> serverAuthContextMap = new HashMap<>();
+    serverAuthContextMap.put("authContextID", new ServerAuthContextImpl(Collections.singletonList(authModule)));
+
+    ServerAuthContextType serverAuthContextType = new ServerAuthContextType("HTTP", "server *",
+            "authContextID",
+            new AuthModuleType<ServerAuthModule>());
+    ServerAuthConfigType serverAuthConfigType = new ServerAuthConfigType(serverAuthContextType, true);
+    ServerAuthConfig serverAuthConfig = new ServerAuthConfigImpl(serverAuthConfigType, serverAuthContextMap);
+    return new JaspiAuthenticator(serverAuthConfig, null, callbackHandler,
+            new Subject(), true, getHandlerIdentityService());
   }
 }

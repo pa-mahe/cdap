@@ -16,7 +16,6 @@
 
 package co.cask.cdap.security.server;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.knox.gateway.services.security.token.impl.JWT;
 import org.apache.knox.gateway.services.security.token.impl.JWTToken;
 import org.apache.knox.gateway.util.CertificateUtils;
@@ -37,16 +36,6 @@ import com.nimbusds.jose.crypto.RSASSAVerifier;
 
 import io.netty.handler.codec.http.HttpHeaderNames;
 import org.apache.commons.codec.binary.Base64;
-
-import org.json.JSONObject;
-import org.json.XML;
-import org.keycloak.OAuth2Constants;
-import org.keycloak.adapters.KeycloakDeployment;
-import org.keycloak.adapters.KeycloakDeploymentBuilder;
-import org.keycloak.adapters.rotation.AdapterTokenVerifier;
-import org.keycloak.authorization.client.Configuration;
-import org.keycloak.common.VerificationException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +44,6 @@ import java.security.interfaces.RSAPublicKey;
 import java.util.*;
 import java.text.ParseException;
 import java.util.concurrent.TimeUnit;
-import javax.security.auth.Subject;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -76,7 +64,6 @@ public class GrantAccessToken {
     private final long tokenExpiration;
     private final long extendedTokenExpiration;
     private static CConfiguration conf;
-    private static KeycloakDeployment deployment;
 
     /**
      * Create a new GrantAccessToken object to generate tokens for authorized users.
@@ -97,7 +84,6 @@ public class GrantAccessToken {
      */
     public void init() {
         tokenManager.start();
-        this.deployment = createKeycloakDeployment(conf);
     }
 
     /**
@@ -197,47 +183,14 @@ public class GrantAccessToken {
     private AccessToken getTokenUsingKeycloak(HttpServletRequest request, HttpServletResponse response)
             throws IOException, ServletException, UnauthorizedException {
 
-        /* TO BE DONE */
-
-        String username;
-        org.keycloak.representations.AccessToken keycloakToken = null;
         List<String> userGroups = Collections.emptyList();
-        String authorizationHeader = request.getHeader("keycloakToken");
-        String wireToken;
+        String keycloakTokenString = request.getHeader("keycloakToken");
+        org.keycloak.representations.AccessToken keycloakAccessToken = (org.keycloak.representations.AccessToken)request.getAttribute("keycloakAccessToken");
+        String username = keycloakAccessToken.getPreferredUsername();
+        long issueTime = (long) keycloakAccessToken.getIssuedAt() * 1000;
+        long expireTime = (long) keycloakAccessToken.getExpiration() * 1000;
 
-        if (authorizationHeader == null) {
-            authorizationHeader = request.getAttribute("keycloakToken").toString();
-        }
-
-        if (authorizationHeader != null && !Strings.isNullOrEmpty(authorizationHeader)) {
-            wireToken = authorizationHeader;
-        } else {
-            wireToken = getJWTTokenFromCookie(request);
-        }
-        if (Strings.isNullOrEmpty(wireToken)) {
-            LOG.debug("No valid 'Bearer Authorization' or 'Cookie' found in header, send 401");
-            return null;
-        }
-
-        try {
-            keycloakToken = AdapterTokenVerifier.verifyToken(wireToken, deployment);
-            username = keycloakToken.getPreferredUsername();
-
-        } catch (VerificationException e) {
-            Response.status(401).build();
-            throw new UnauthorizedException("Authorization header missing/invalid");
-        }
-
-        if (keycloakToken.isExpired()) {
-            LOG.debug("token expiry date: " + new Date(keycloakToken.getExpiration()));
-            Response.status(401).build();
-            throw new UnauthorizedException("Token expired.");
-        }
-
-        long issueTime = (long) keycloakToken.getIssuedAt() * 1000;
-        long expireTime = (long) keycloakToken.getExpiration() * 1000;
-
-        AccessTokenIdentifier tokenIdentifier = new AccessTokenIdentifier(username, userGroups, issueTime, expireTime, wireToken);
+        AccessTokenIdentifier tokenIdentifier = new AccessTokenIdentifier(username, userGroups, issueTime, expireTime, keycloakTokenString);
         AccessToken cdapToken = tokenManager.signIdentifier(tokenIdentifier);
         LOG.debug("Issued token for user {}", username);
 
@@ -336,19 +289,6 @@ public class GrantAccessToken {
     private void grantToken(HttpServletRequest request, HttpServletResponse response, long tokenValidity)
             throws IOException, ServletException {
 
-        if (request.getUserPrincipal() instanceof JAASUserPrincipal) {
-            Subject subject;
-            subject = ((JAASUserPrincipal) request.getUserPrincipal()).getSubject();
-            if (subject != null) {
-                String keycloakToken = subject.getPrivateCredentials().iterator().next().toString();
-                if (keycloakToken != null) {
-                    request.setAttribute("keycloakToken", keycloakToken);
-                    getTokenUsingKeycloak(request, response);
-                    return;
-                }
-            }
-        }
-
         String username = request.getUserPrincipal().getName();
         List<String> userGroups = Collections.emptyList();
 
@@ -377,21 +317,5 @@ public class GrantAccessToken {
         response.getOutputStream().print(json.toString());
         response.setStatus(HttpServletResponse.SC_OK);
 
-    }
-
-    public static KeycloakDeployment createKeycloakDeployment(CConfiguration cConf){
-        if(deployment!=null)
-            return deployment;
-
-        String filepath = cConf.get("security.authentication.handler.keycloak-config-file");
-        try {
-            InputStream inputStream = new FileInputStream(new File(filepath));
-            deployment = KeycloakDeploymentBuilder.build(inputStream);
-        }catch (IOException ex){
-            throw new RuntimeException("Keycloak config file not found on the path "+filepath);
-        }catch (Exception ex){
-            throw new RuntimeException("Error Occured while creating keycloak deployment");
-        }
-        return deployment;
     }
 }
