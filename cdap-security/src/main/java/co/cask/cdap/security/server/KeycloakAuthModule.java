@@ -61,8 +61,12 @@ public class KeycloakAuthModule extends BasicAuthModule {
             if (request.getHeader("keycloakToken") != null) {
                 String keycloakTokenString = request.getHeader("keycloakToken");
                 AccessToken keycloakAccessToken = verifyKeycloakToken(keycloakTokenString);
+<<<<<<< HEAD
                 request.setAttribute("keycloakAccessToken",keycloakAccessToken);
 
+=======
+                request.setAttribute("keycloakAccessToken", keycloakAccessToken);
+>>>>>>> 0291a7c39c... exception Handling fix
                 return AuthStatus.SUCCESS;
             }
 
@@ -92,15 +96,15 @@ public class KeycloakAuthModule extends BasicAuthModule {
         if (deployment != null)
             return deployment;
 
-        createKeycloakConfigurationFile();
-        String filepath = handlerProps.get("keycloak-config-file");
         try {
+            createKeycloakConfigurationFile();
+            String filepath = handlerProps.get("keycloak-config-file");
             InputStream inputStream = new FileInputStream(new File(filepath));
             deployment = KeycloakDeploymentBuilder.build(inputStream);
         } catch (IOException ex) {
-            throw new RuntimeException("Keycloak config file not found on the path " + filepath);
+            throw new RuntimeException("Keycloak config file not found on the path");
         } catch (Exception ex) {
-            throw new RuntimeException("Error Occured while creating keycloak deployment " + ex.getMessage());
+            throw new RuntimeException("Error Occured while creating keycloak deployment");
         }
         return deployment;
     }
