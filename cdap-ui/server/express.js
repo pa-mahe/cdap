@@ -223,13 +223,27 @@ function makeApp(authAddress, cdapConfig, uiSettings) {
     res.send('window.CDAP_CONFIG = '+data+';');
   });
 
+
+  app.get('/keycloak-enable', function (req, res) {
+    res.json({enable: cdapConfig['keyclock.enable']});
+  });
+
   app.get('/keycloak-config', function (req, res) {
+
+    var keycloakAuthURL = [
+      cdapConfig['ssl.external.enabled'] === 'true' ? 'https://' : 'http://',
+      cdapConfig['router.server.address'],
+      ':',
+      '8180',
+      cdapConfig['keyclock.server.port'] ,
+      '/auth'
+    ].join('');
     var config = {
-      'realm': "dev",
-      'url': "http://192.168.154.194:8180/auth",
-      'clientId': 'backend-client',
+      'realm': cdapConfig['keyclock.realm'],
+      'url': keycloakAuthURL,
+      'clientId': cdapConfig['keyclock.clientId'],
       'credentials': {
-        'secret': 'd0c0dd65-28fe-4bae-a35e-010651bce3f2'
+      'secret': cdapConfig['keyclock.secret.key']
       }
     };
     res.json(config);
@@ -572,6 +586,7 @@ function makeApp(authAddress, cdapConfig, uiSettings) {
       if (error) {
         onInvalidKeyCloakToken(error);
       } else if (response) {
+        log.info('response  .................................  ', response.statusCode);
         if (response.statusCode === 200) {
           var respObj = {};
           if (body) {

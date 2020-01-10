@@ -31,7 +31,6 @@ import Keycloak from 'keycloak-js';
 require('./styles/lib-styles.scss');
 require('./login.scss');
 import T from 'i18n-react';
-import Secured from './secured';
 T.setTexts(require('./text/text-en.yaml'));
 
 class Login extends Component {
@@ -177,37 +176,33 @@ class Login extends Component {
     });
   }
 
-  getCdapToken = () => {
-    fetch(('/cdapToken'), {
-      method: 'GET',
-      headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
-    })
-      .then((response) => {
-        if (response.status >= 200 && response.status < 300) {
-          return response.json();
-        } else {
-          this.setState({useSecured: true});
-          return Promise.reject();
-        }
-      })
-      .then((res) => {
-        cookie.save('CDAP_Auth_Token', res.access_token, { path: '/'});
-        cookie.save('CDAP_Auth_User', res.userName, { path: '/'});
-        var queryObj = util.getQueryParams(location.search);
-        queryObj.redirectUrl = queryObj.redirectUrl || (location.pathname.endsWith('/login') ? '/' : location.pathname);
-        window.location.href = queryObj.redirectUrl;
-        this.setState({useSecured: false});
-      });
-  }
-
-  componentWillMount() {
+  getKeycloakConfig = () => {
     let keycloakToken = cookie.load('Keycloak_Token');
     if (keycloakToken) {
       this.getCdapToken(keycloakToken);
     } else {
-      if (!this.showLoginPage) {
-        this.setState({useSecured: true});
-      }
+      fetch("/keycloak-config").then((response) => {
+        if (response.status >= 200 && response.status < 300) {
+          return response.json();
+        } else {
+          return Promise.reject();
+        }
+      })
+        .then((config) => {
+          const keycloak = Keycloak(config);
+          keycloak.init(
+            {
+              onLoad: 'login-required',
+              checkLoginIframe: false,
+              promiseType: 'native'
+            }).then(authenticated => {
+              this.setState({ authenticated: authenticated });
+              cookie.save('Keycloak_Refresh_Token', keycloak.refreshToken, { path: '/' });
+              cookie.save('Keycloak_Token', keycloak.token, { path: '/' });
+              cookie.save('Keycloak_Id_Token', keycloak.idToken, { path: '/' });
+              this.getCdapToken(keycloak.token);
+            });
+        });
     }
   }
 
