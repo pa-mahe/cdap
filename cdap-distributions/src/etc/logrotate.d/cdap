@@ -1,4 +1,5 @@
 /var/log/cdap/*-cdap-*.log {
+    maxsize 1024M
     rotate 7
     daily
     missingok
