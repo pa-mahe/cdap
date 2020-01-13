@@ -18,7 +18,7 @@ angular.module(PKG.name + '.feature.hydrator')
   .controller('HydratorPlusPlusListController',
   function(
     $scope, myPipelineApi, $stateParams, GLOBALS,
-    mySettings, $state, myHelpers,
+    mySettings, $state, $http, myHelpers,
     myAppsApi, myAlertOnValium, myLoadingService,
     $interval, moment, MyPipelineStatusMapper,
     myPipelineCommonApi, PROGRAM_STATUSES) {
@@ -26,18 +26,29 @@ angular.module(PKG.name + '.feature.hydrator')
     vm.$interval = $interval;
     vm.moment = moment;
     vm.pipelineList = [];
+    vm.filteredPipeline = [];
+    vm.draftPipeLineList = [];
     vm.pipelineListLoaded = false;
     vm.MyPipelineStatusMapper = MyPipelineStatusMapper;
     var eventEmitter = window.CaskCommon.ee(window.CaskCommon.ee);
-    vm.statusCount = {
-      running: 0,
-      draft: 0
-    };
-    vm.PAGE_SIZE = 10;
+
+    vm.displayStatusCountMap = undefined;
+    vm.displayStatus = 'All';
+    vm.selectedStatusCount = 0;
+
+    vm.pipelineTypeCountMap = undefined;
+    vm.selectedPipelineType = 'All';
+    vm.selectedTypePipelineCount = 0;
+
+    vm.pipelineLimit = [10, 15, 20, 25, 30, 35, 40];
+    vm.PAGE_SIZE = vm.pipelineLimit[0];
     vm.GLOBALS = GLOBALS;
+    vm.maxPageSize = 10;
     vm.searchText = '';
     vm.featureName = window.CaskCommon.ThemeHelper.Theme.featureNames.pipelines;
     vm.headerClass = !window.CaskCommon.ThemeHelper.Theme.showHeader ? 'no-header' : '';
+    vm.isSelectAll = false;
+    vm.isPipelineDownloadProgress = false;
     vm.checkForValidPage = (pageNumber) => {
       return (
         !Number.isNaN(pageNumber) &&
@@ -45,7 +56,6 @@ angular.module(PKG.name + '.feature.hydrator')
         Math.floor(vm.pipelineList.length) >= pageNumber
       );
     };
-
     vm.setCurrentPage = () => {
       let pageNumber = parseInt($stateParams.page, 10);
       if (pageNumber && vm.checkForValidPage(pageNumber)) {
@@ -68,6 +78,17 @@ angular.module(PKG.name + '.feature.hydrator')
       vm.fetchRunsCount();
     };
 
+    vm.pipelineDeleteStatus = (status, message) => {
+      myLoadingService.hideLoadingIconImmediate();
+      $state.reload()
+        .then(function() {
+          myAlertOnValium.show({
+            type: status,
+            content: message
+          });
+        });
+    };
+
     vm.deleteDraft = function(draftId) {
       myLoadingService.showLoadingIcon()
       .then(function() {
@@ -82,26 +103,13 @@ angular.module(PKG.name + '.feature.hydrator')
             return mySettings.set('hydratorDrafts', res);
           })
           .then(
-              function success() {
-                myLoadingService.hideLoadingIconImmediate();
-                $state.reload()
-                  .then(function() {
-                    myAlertOnValium.show({
-                      type: 'success',
-                      content: 'Pipeline draft ' + draftName + ' deleted successfully'
-                    });
-                  });
-              },
-              function error() {
-                myLoadingService.hideLoadingIconImmediate();
-                $state.reload()
-                  .then(function() {
-                    myAlertOnValium.show({
-                      type: 'danger',
-                      content: 'Pipeline draft ' + draftName + ' delete failed'
-                    });
-                  });
-              });
+            function success() {
+              vm.pipelineDeleteStatus('success', `Pipeline draft ${draftName} deleted successfully`);
+            },
+            function error() {
+              vm.pipelineDeleteStatus('danger', `Pipeline draft ${draftName} delete failed`);
+            }
+          );
       });
     };
 
@@ -116,25 +124,43 @@ angular.module(PKG.name + '.feature.hydrator')
         return myAppsApi.delete(deleteParams)
           .$promise;
       })
-      .then(function success () {
-        myLoadingService.hideLoadingIconImmediate();
-        $state.reload()
-          .then(function() {
-            myAlertOnValium.show({
-              type: 'success',
-              content: 'Pipeline ' + appId + ' deleted successfully'
-            });
-          });
-      }, function error () {
-        myLoadingService.hideLoadingIconImmediate();
-        $state.reload()
-          .then(function() {
-            myAlertOnValium.show({
-              type: 'danger',
-              content:  'Pipeline ' + appId + ' delete failed'
-            });
-          });
-      });
+      .then(
+        function success() {
+          vm.pipelineDeleteStatus('success', `Pipeline ${appId} deleted successfully`);
+        },
+        function error() {
+          vm.pipelineDeleteStatus('danger', `Pipeline ${appId} delete failed`);
+        }
+      );
+    };
+
+    vm.deleteAll = function () {
+      let pipelines = vm.selectedPipeline();
+      if (pipelines.isSelectionEmpty) {
+        return;
+      }
+
+      myLoadingService.showLoadingIcon()
+        .then(function () {
+          mySettings.get('hydratorDrafts')
+            .then(function (res) {
+              for (let i = 0; i < pipelines.draftList.length; i++) {
+                let draft = myHelpers.objectQuery(res, $stateParams.namespace, pipelines.draftList[i].draftId);
+                if (draft) {
+                  delete res[$stateParams.namespace][pipelines.draftList[i].draftId];
+                }
+              }
+              return mySettings.set('hydratorDrafts', res);
+            })
+            .then(function () {
+              return myAppsApi.deleteAll({
+                namespace: $state.params.namespace
+              }, pipelines.pipelineList)
+                .$promise;
+            })
+            .then(() => { vm.pipelineDeleteStatus('success', `Pipelines deleted successfully`); })
+            .catch(err => { vm.pipelineDeleteStatus('danger', (err && err.data ? err.data : 'Pipelines deletion failed')); });
+        });
     };
 
     $scope.$on('$destroy', function() {
@@ -222,6 +248,8 @@ angular.module(PKG.name + '.feature.hydrator')
             .then(() => {
               vm.setCurrentPage();
               vm.fetchPipelinesRunsInfo();
+              // update check status
+              vm.pipelineList.map((app) => app['selected'] = false);
             });
         });
     };
@@ -304,6 +332,7 @@ angular.module(PKG.name + '.feature.hydrator')
 
     vm.updateStatusAppObject =() => {
       angular.forEach(vm.pipelineList, function (app) {
+        app.artifactType = app.artifact.name;
         if (app.isDraft) {
           app.displayStatus = vm.MyPipelineStatusMapper.lookupDisplayStatus(PROGRAM_STATUSES.DRAFT);
           return;
@@ -311,24 +340,25 @@ angular.module(PKG.name + '.feature.hydrator')
         if (!vm.latestRunExists(app)) {
           app.displayStatus = vm.MyPipelineStatusMapper.lookupDisplayStatus(PROGRAM_STATUSES.DEPLOYED);
         } else {
-          if(app.latestRun.status === PROGRAM_STATUSES.RUNNING){
-            vm.statusCount.running++;
-          }
           app.displayStatus = vm.MyPipelineStatusMapper.lookupDisplayStatus(app.latestRun.status);
         }
       });
+      vm.displayStatusCountMap = _.countBy(vm.pipelineList.map(item => item.displayStatus).sort());
+      vm.pipelineTypeCountMap = _.countBy(vm.pipelineList.map(item => item.artifact.name).sort());
+      vm.displayStatusCountMap['All'] = vm.selectedStatusCount = vm.pipelineList.length;
+      vm.pipelineTypeCountMap['All'] = vm.selectedTypePipelineCount = vm.pipelineList.length;
     };
 
     vm.fetchDrafts = () => {
       return mySettings.get('hydratorDrafts', true)
         .then(function(res) {
           let draftsList = myHelpers.objectQuery(res, $stateParams.namespace);
+          vm.draftPipeLineList = draftsList;
           if (!angular.isObject(draftsList)) {
             return;
           }
           if (Object.keys(draftsList).length) {
             angular.forEach(res[$stateParams.namespace], function(value, key) {
-              vm.statusCount.draft++;
               vm.pipelineList.push({
                 isDraft: true,
                 name: value.name,
@@ -342,11 +372,136 @@ angular.module(PKG.name + '.feature.hydrator')
         });
     };
 
+    vm.updateSelectAllStatus = () => {
+      //update select all check box status
+      if(vm.filteredPipeline.length>0) {
+        vm.isSelectAll = !vm.filteredPipeline.some((item) => !item.selected);
+      } else{
+        vm.isSelectAll = false;
+      }
+    };
+
+    vm.pipeNameSearchChangeHandler = () => {
+      setTimeout(() => vm.updateSelectAllStatus());
+    };
+
+    vm.selectDeselectAll = () => {
+       vm.isSelectAll = !vm.isSelectAll;
+      vm.filteredPipeline.map((app) => app['selected'] = vm.isSelectAll);
+    };
+
+    vm.selectDeselectPipeline = (event, pipeline) => {
+      event.stopPropagation();
+      pipeline.selected = event.target.checked;
+      vm.updateSelectAllStatus();
+    };
+
+
     vm.refreshScreen = () => {
       $state.reload()
       .then(function() {
         // capture the promise resolve state for feature use.
       });
+    };
+
+    vm.selectedPipeline = () => {
+      let pipelines = {
+        draftList: [],
+        pipelineList: [],
+        isSelectionEmpty: true,
+      };
+      angular.forEach(vm.pipelineList, function (app) {
+        if (app.selected) {
+          if (app.isDraft) {
+            const { artifact, description, name, config } = vm.draftPipeLineList[app.id];
+            pipelines.draftList.push({ artifact, description, name, config, draftId: app.id });
+          } else {
+            pipelines.pipelineList.push(app.name);
+          }
+        }
+      });
+
+      if (pipelines.draftList.length>0 || pipelines.pipelineList.length>0) {
+        pipelines.isSelectionEmpty = false;
+      }
+
+      return pipelines;
+    };
+
+    vm.exportPipelines = () => {
+      let reqData = vm.selectedPipeline();
+      if (reqData.isSelectionEmpty) {
+        return;
+      }
+
+      vm.isPipelineDownloadProgress = true;
+      var exportReq = {
+        method: 'POST',
+        url:`/${$stateParams.namespace}/apps/export`,
+        data: reqData,
+        responseType: 'blob'
+      };
+
+      $http(exportReq).then((response) => {
+        if(response.data) {
+          const url = window.URL.createObjectURL(response.data);
+          const dummyElement = document.createElement('a');
+          dummyElement.style.display = 'none';
+          dummyElement.href = url;
+          dummyElement.download = 'piplines.zip';
+          document.body.appendChild(dummyElement);
+          dummyElement.click();
+          document.body.removeChild(dummyElement);
+        }
+        vm.isPipelineDownloadProgress = false;
+        myAlertOnValium.show({
+          type: 'success',
+          content: 'Pipelines exported successfully'
+        });
+        console.log('download sucessfully', response);
+      }, (err) => {
+        vm.isPipelineDownloadProgress = false;
+        myAlertOnValium.show({
+          type: 'danger',
+          content:  'Pipelines export failed'
+        });
+        console.log('not able to download', err);
+      });
+
+    };
+
+    vm.goToPipelinePage = (pipeline) => {
+      let url = '';
+      if (pipeline.isDraft) {
+        url = window.getHydratorUrl({
+          stateName: 'hydrator.create',
+          stateParams: {
+            namespace: $stateParams.namespace,
+            draftId: pipeline.id,
+            artifactType: pipeline.artifact.name
+          }
+        });
+      } else {
+        url = window.getHydratorUrl({
+          stateName: 'hydrator.detail',
+          stateParams: {
+            namespace: $stateParams.namespace,
+            pipelineId: pipeline.name
+          }
+        });
+      }
+
+      window.location.href = url;
+    };
+
+    vm.getDisplayStatus = () => {
+      vm.selectedStatusCount = vm.displayStatusCountMap !== undefined ? vm.displayStatusCountMap[vm.displayStatus] : 0;
+      return vm.displayStatus === 'All' ? '' : vm.displayStatus;
+    };
+
+    vm.getPipelineType = () => {
+      vm.selectedTypePipelineCount = vm.pipelineTypeCountMap !== undefined ? vm.pipelineTypeCountMap[vm.selectedPipelineType] : 0;
+      return vm.selectedPipelineType === 'All' ? '' : vm.selectedPipelineType;
     };
 
     vm.getPipelines();
