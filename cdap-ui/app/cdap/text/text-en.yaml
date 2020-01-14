@@ -1186,6 +1186,7 @@ features:
           ADD: Add Connection
           DUPLICATE: Duplicate Connection
           EDIT: Save Changes
+        customLabel: "Select Database"
         url: JDBC URL
         database: Database
         databaseSelectionMessage: Database field is mandatory for {connectionMode} connection
@@ -1206,7 +1207,7 @@ features:
           ADD: "Add connection: HIVE Server2"
           DUPLICATE: "Duplicate connection: {connection}"
           EDIT: "Edit connection: {connection}"
-        customLabel: "Select Database"
+
       GCS:
         Buttons:
           ADD: Add Connection
@@ -1239,11 +1240,14 @@ features:
           DUPLICATE: Duplicate Connection
           EDIT: Save Changes
         connectionType: Connection type
+        customLabel: "Select Kafka Topic"
         defaultTestErrorMessage: Cannot connect to Kafka
+        defaultFetchKafkaTopicErrorMessage: Error in fetching kafka topics
         ErrorMessages:
           ADD: Failed to add connection
           DUPLICATE: Failed to duplicate connection
           EDIT: Failed to edit connection
+        getKafkaTopics: Get Kafka Topics
         hortonworksSchemaRegistryURL: Hortonworks Schema Registry URL
         kafka: Kafka
         kafkaProducerProperties: Additional Kafka Producer Properties
@@ -1252,6 +1256,8 @@ features:
           ADD: "Add connection: Kafka"
           DUPLICATE: "Duplicate connection: {connection}"
           EDIT: "Edit connection: {connection}"
+        fetchKafkaTopicLabels:
+          danger: Fetch Kafka topics failed
         format: Message Format
         name: Connection name
         principal: Kerberos Principal
@@ -1275,6 +1281,7 @@ features:
       label: Add Connection
       Popover:
         title: Select a source to connect
+
       S3:
         accessKeyId: Access key ID
         accessSecretKey: Secret access key
