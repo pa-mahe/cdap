@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.security.PrivilegedExceptionAction;
 import java.util.Properties;
 
 /**
@@ -61,16 +62,29 @@ public final class HiveTokenUtils {
       Class hiveClass = hiveClassloader.loadClass("org.apache.hadoop.hive.ql.metadata.Hive");
       @SuppressWarnings("unchecked")
       Method hiveGet = hiveClass.getMethod("get", hiveConfClass);
-      Object hiveObject = hiveGet.invoke(null, hiveConf);
 
       String user = UserGroupInformation.getCurrentUser().getShortUserName();
-      @SuppressWarnings("unchecked")
       Method getDelegationToken = hiveClass.getMethod("getDelegationToken", String.class, String.class);
-      String tokenStr = (String) getDelegationToken.invoke(hiveObject, user, user);
+      UserGroupInformation loginUgi = UserGroupInformation.getLoginUser();
+      UserGroupInformation currentUgi = UserGroupInformation.getCurrentUser();
 
-      Token<DelegationTokenIdentifier> delegationToken = new Token<>();
-      delegationToken.decodeFromUrlString(tokenStr);
-      delegationToken.setService(new Text(Constants.Explore.HIVE_METASTORE_TOKEN_SERVICE_NAME));
+      if (!(currentUgi.getAuthenticationMethod().equals(
+            UserGroupInformation.AuthenticationMethod.PROXY))) {
+        loginUgi = currentUgi;
+      }
+
+      @SuppressWarnings("unchecked")
+      Token<DelegationTokenIdentifier> delegationToken = loginUgi.doAs(
+              new PrivilegedExceptionAction<Token<DelegationTokenIdentifier>>() {
+        public Token<DelegationTokenIdentifier> run() throws Exception {
+          Object hiveObject = hiveGet.invoke(null, hiveConf);
+          String tokenStr = (String) getDelegationToken.invoke(hiveObject, user, user);
+          Token<DelegationTokenIdentifier> delegationToken = new Token<>();
+          delegationToken.decodeFromUrlString(tokenStr);
+          delegationToken.setService(new Text(Constants.Explore.HIVE_METASTORE_TOKEN_SERVICE_NAME));
+          return delegationToken;
+        }
+      });
       LOG.debug("Adding delegation token {} from MetaStore for service {} for user {}",
                 delegationToken, delegationToken.getService(), user);
       credentials.addToken(delegationToken.getService(), delegationToken);
@@ -100,18 +114,37 @@ public final class HiveTokenUtils {
       Method getDelegationTokenMethod =
         hiveConnectionClass.getMethod("getDelegationToken", String.class, String.class);
 
-      Object hiveConnection = constructor.newInstance(hiveJdbcUrl, EMPTY_PROPERTIES);
-
       try {
         String user = UserGroupInformation.getCurrentUser().getShortUserName();
-        String tokenStr = (String) getDelegationTokenMethod.invoke(hiveConnection, user, user);
-        Token<DelegationTokenIdentifier> delegationToken = new Token<>();
-        delegationToken.decodeFromUrlString(tokenStr);
+        UserGroupInformation loginUgi = UserGroupInformation.getLoginUser();
+        UserGroupInformation currentUgi = UserGroupInformation.getCurrentUser();
+        if (!(currentUgi.getAuthenticationMethod().equals(
+              UserGroupInformation.AuthenticationMethod.PROXY))) {
+          loginUgi = currentUgi;
+        }
+
+        Token<DelegationTokenIdentifier> delegationToken = loginUgi.doAs(
+                  new PrivilegedExceptionAction<Token<DelegationTokenIdentifier>>() {
+          public Token<DelegationTokenIdentifier> run() throws Exception {
+            Object hiveConnection = null;
+            try {
+              hiveConnection = constructor.newInstance(hiveJdbcUrl, EMPTY_PROPERTIES);
+              String tokenStr = (String) getDelegationTokenMethod.invoke(hiveConnection, user, user);
+              Token<DelegationTokenIdentifier> delegationToken = new Token<>();
+              delegationToken.decodeFromUrlString(tokenStr);
+              return delegationToken;
+            } finally {
+              try {
+                closeMethod.invoke(hiveConnection);
+              } catch (Exception e1) {}
+            }
+          }
+        });
+        
         LOG.debug("Adding delegation token {} from HiveServer2 for service {} for user {}",
                   delegationToken, delegationToken.getService(), user);
         credentials.addToken(delegationToken.getService(), delegationToken);
       } finally {
-        closeMethod.invoke(hiveConnection);
       }
     } catch (Exception e) {
       LOG.warn("Got exception when fetching delegation token from HiveServer2 using JDBC URL {}, ignoring it",
