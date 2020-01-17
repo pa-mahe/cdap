@@ -628,6 +628,10 @@ final class SparkRuntimeService extends AbstractExecutionThreadService {
           File libDir = new File(ClassLoaders.getClassPathURL(className, classURL).toURI()).getParentFile();
 
           for (File file : DirUtils.listFiles(libDir, "jar")) {
+            if (file.isDirectory()) {
+              // This can happen when class gets resolved by jars specified in program.container.dist.jars
+              continue;
+            }
             if (classpath.add(file.getName())) {
               jarOut.putNextEntry(new JarEntry(file.getName()));
               Files.copy(file, jarOut);
