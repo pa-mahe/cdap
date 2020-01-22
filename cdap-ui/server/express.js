@@ -231,17 +231,17 @@ function makeApp(authAddress, cdapConfig, uiSettings) {
   app.get('/keycloak-config', function (req, res) {
     var keycloakAuthURL = [
       cdapConfig['ssl.external.enabled'] === 'true' ? 'https://' : 'http://',
-      cdapConfig['keyclock.server.address'],
+      cdapConfig['security.authorization.extension.config.keycloakauthserveraddress'],
       ':',
-      cdapConfig['keyclock.server.port'] ,
+      cdapConfig['security.authorization.extension.config.keycloakauthserverport'] ,
       '/auth'
     ].join('');
     var config = {
-      'realm': cdapConfig['keyclock.realm'],
+      'realm': cdapConfig['security.authorization.extension.config.realm'],
       'url': keycloakAuthURL,
-      'clientId': cdapConfig['keyclock.clientId'],
+      'clientId': cdapConfig['security.authorization.extension.config.client_id'],
       'credentials': {
-        'secret': cdapConfig['keyclock.secret.key']
+        'secret': cdapConfig['security.authorization.extension.config.client_secret']
       }
     };
     res.json(config);

@@ -17,10 +17,10 @@
   "white.list.ips": "",
   "security.auth.server.bind.port": "10009",
   "security.auth.server.ssl.bind.port": "10010",
-  "keyclock.server.address": "192.168.154.194",
-  "keyclock.server.port": "8180",
-  "keyclock.clientId": "backend-client",
-  "keyclock.secret.key": "d0c0dd65-28fe-4bae-a35e-010651bce3f2",
-  "keyclock.realm": "dev",
+  "security.authorization.extension.config.keycloakauthserveraddress": "192.168.154.194",
+  "security.authorization.extension.config.keycloakauthserverport": "8180",
+  "security.authorization.extension.config.client_id": "backend-client",
+  "security.authorization.extension.config.client_secret": "d0c0dd65-28fe-4bae-a35e-010651bce3f2",
+  "security.authorization.extension.config.realm": "dev",
   "keyclock.enable": true
 }
