@@ -200,7 +200,6 @@ const updateKeyCloak = (minValidty = minKeycloakTokenValidity) => {
       .then((refreshed) => {
         if (refreshed) {
           updateKeycloakToken(keycloakInstance);
-          cookie.save('Keycloak_Refresh_Token', keycloakInstance.refreshToken, { path: '/' });
           fetch(('/cdapToken'), {
             method: 'GET',
             headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Keycloak_Token': keycloakInstance.token },

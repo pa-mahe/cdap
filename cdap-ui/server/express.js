@@ -229,12 +229,10 @@ function makeApp(authAddress, cdapConfig, uiSettings) {
   });
 
   app.get('/keycloak-config', function (req, res) {
-
     var keycloakAuthURL = [
       cdapConfig['ssl.external.enabled'] === 'true' ? 'https://' : 'http://',
-      cdapConfig['router.server.address'],
+      cdapConfig['keyclock.server.address'],
       ':',
-      '8180',
       cdapConfig['keyclock.server.port'] ,
       '/auth'
     ].join('');
@@ -243,7 +241,7 @@ function makeApp(authAddress, cdapConfig, uiSettings) {
       'url': keycloakAuthURL,
       'clientId': cdapConfig['keyclock.clientId'],
       'credentials': {
-      'secret': cdapConfig['keyclock.secret.key']
+        'secret': cdapConfig['keyclock.secret.key']
       }
     };
     res.json(config);
@@ -548,23 +546,23 @@ function makeApp(authAddress, cdapConfig, uiSettings) {
       'Connection': 'close'
     });
 
-    const onInvalidKeyCloakToken = function(errObj) {
-      log.error('INVALID KEYCLOAK TOKEN .............................');
+    const errorHandler = function(code, message, errObj) {
+      log.error('Error handler .............................', message);
           var err = {
             error: errObj,
-            message: 'INVALID KEYCLOAK TOKEN',
+            message: message ? message :'INVALID KEYCLOAK TOKEN',
           };
-          res.status(err.statusCode?err.statusCode:402).send(err);
+          res.status(code).send(err);
     };
     var keycloakToken = req.headers['keycloak_token'];
     if (!keycloakToken) {
-      onInvalidKeyCloakToken({error: 'Token not found'});
+      errorHandler( 402, 'Token not found');
       return;
     }
 
     var userName = jwtDecode(keycloakToken)['user_name'];
     if (!userName ) {
-      onInvalidKeyCloakToken({error: 'Username not found'});
+      errorHandler( 402, 'Username not found');
       return;
     }
 
@@ -572,7 +570,7 @@ function makeApp(authAddress, cdapConfig, uiSettings) {
       cdapConfig['ssl.external.enabled'] === 'true' ? 'https://' : 'http://',
       cdapConfig['router.server.address'],
       ':',
-      cdapConfig['ssl.external.enabled'] === 'true' ? cdapConfig['router.ssl.server.port'] : cdapConfig['router.server.port'],
+      cdapConfig['ssl.external.enabled'] === 'true' ? cdapConfig['security.auth.server.ssl.bind.port'] : cdapConfig['security.auth.server.bind.port'],
       '/keycloakToken'
     ].join('');
     log.info('AUTH ->' + keycloakURL);
@@ -583,22 +581,15 @@ function makeApp(authAddress, cdapConfig, uiSettings) {
       }
     };
     request(options, (error, response, body) => {
-      if (error) {
-        onInvalidKeyCloakToken(error);
-      } else if (response) {
-        log.info('response  .................................  ', response.statusCode);
-        if (response.statusCode === 200) {
-          var respObj = {};
-          if (body) {
-            respObj = JSON.parse(body);
-          }
-          respObj['userName'] = userName;
-          res.status(200).send(respObj);
-        } else {
-          onInvalidKeyCloakToken(response);
-        }
+
+      var respObj = body ? JSON.parse(body) : {};
+      respObj['userName'] = userName;
+
+      if (error || response.statusCode !== 200) {
+        var statusCode = (response ? response.statusCode : 402) || 402;
+        errorHandler( statusCode, 'INVALID KEYCLOAK TOKEN', error ? error : respObj);
       } else {
-        onInvalidKeyCloakToken({ error: 'Error retrieving data' });
+        res.status(200).send(respObj);
       }
     });
   });

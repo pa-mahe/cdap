@@ -40,7 +40,7 @@ export default function RedirectToLogin(data) {
     if (window.keycloakInstance) {
       window.keycloakInstance.logout({redirectUri});
     } else {
-      window.location.href =redirectUri ;
+      window.location.href =redirectUri;
     }
   }
   return true;

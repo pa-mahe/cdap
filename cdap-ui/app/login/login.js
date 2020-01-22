@@ -43,12 +43,13 @@ class Login extends Component {
       formState: false,
       rememberUser: false,
       inputs: this.getValidationState(),
-      keycloakEnable: true,
-      authenticated: false
+      keycloakEnable: true
     };
-    this.checkKeycloak();
-  }
+    setTimeout(() => {
+      this.checkKeycloak();
+    }, 2000);
 
+  }
 
   getValidationState = () => {
     return {
@@ -140,15 +141,16 @@ class Login extends Component {
     });
   }
 
-  getCdapToken = (token) => {
+  getCdapToken = (keycloak) => {
     fetch(('/cdapToken'), {
       method: 'GET',
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Keycloak_Token': token },
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Keycloak_Token': keycloak.token },
     })
       .then((response) => {
         if (response.status >= 200 && response.status < 300) {
           return response.json();
         } else {
+          this.intialiseKeycloakFromScratch(keycloak);
           return Promise.reject();
         }
       })
@@ -169,42 +171,96 @@ class Login extends Component {
         return Promise.reject();
       }
     })
-    .then((resp) => {
-      var isEnable = resp ? resp.enable : false;
-      this.setState({ keycloakEnable: isEnable });
-      this.getKeycloakConfig();
-    });
+      .then((resp) => {
+        var isEnable = resp ? resp.enable : false;
+        this.setState({ keycloakEnable: isEnable });
+        if (isEnable) {
+          this.getKeycloakConfig();
+        }
+      });
   }
 
   getKeycloakConfig = () => {
-    let keycloakToken = cookie.load('Keycloak_Token');
-    if (keycloakToken) {
-      this.getCdapToken(keycloakToken);
-    } else {
-      fetch("/keycloak-config").then((response) => {
-        if (response.status >= 200 && response.status < 300) {
-          return response.json();
-        } else {
-          return Promise.reject();
-        }
-      })
-        .then((config) => {
-          const keycloak = Keycloak(config);
-          keycloak.init(
-            {
-              onLoad: 'login-required',
-              checkLoginIframe: false,
-              promiseType: 'native'
-            }).then(authenticated => {
-              this.setState({ authenticated: authenticated });
-              cookie.save('Keycloak_Refresh_Token', keycloak.refreshToken, { path: '/' });
-              cookie.save('Keycloak_Token', keycloak.token, { path: '/' });
-              cookie.save('Keycloak_Id_Token', keycloak.idToken, { path: '/' });
-              this.getCdapToken(keycloak.token);
-            });
-        });
-    }
+    fetch("/keycloak-config").then((response) => {
+      if (response.status >= 200 && response.status < 300) {
+        return response.json();
+      } else {
+        return Promise.reject();
+      }
+    }).then((config) => {
+      this.intialiseKeycloak(config);
+    });
   }
+
+  intialiseKeycloak = (config) => {
+    // check all token are available
+    var token = cookie.load('Keycloak_Token');
+    var refreshToken = cookie.load('Keycloak_Refresh_Token');
+    var idToken = cookie.load('Keycloak_Id_Token');
+    const keycloak = Keycloak(config);
+    if (token && refreshToken && idToken && token!== "undefined" && refreshToken!== "undefined" && idToken!== "undefined") {
+      console.log('intialise with token');
+      this.intialiseKeycloakWithExistingToken(token, refreshToken, idToken, keycloak);
+    } else {
+      console.log('intialise without token');
+      this.intialiseKeycloakFromScratch(keycloak);
+    }
+  };
+
+  intialiseKeycloakWithExistingToken = (token, refreshToken, idToken, keycloak) => {
+    keycloak.init(
+      {
+        onLoad: 'check-sso',
+        token: token,
+        refreshToken: refreshToken,
+        idToken: idToken,
+        promiseType: 'native',
+      }).then(authenticated => {
+        console.log(" withstatus factory authenticated -> ", authenticated);
+        if (authenticated) {
+          if (keycloak.isTokenExpired(keycloak.token)) {
+            keycloak.updateToken()
+            .then((refreshed) => {
+              if (refreshed) {
+                console.log('token refreshed');
+                this.updateKeycloakTokens(keycloak);
+              } else {
+                console.log('token not refreshed');
+                this.intialiseKeycloakFromScratch(keycloak);
+              }
+            }).catch((error) => {
+              // seems refresh token is expired and need to redirect login
+              console.log('ubable to update token', error);
+              this.intialiseKeycloakFromScratch(keycloak);
+            });
+          } else {
+            this.getCdapToken(keycloak);
+          }
+        } else {
+          // use to refresh acess-token by refresh-token
+          this.intialiseKeycloakFromScratch(keycloak);
+        }
+      });
+  };
+
+  intialiseKeycloakFromScratch = (keycloak) => {
+    keycloak.init(
+      {
+        onLoad: 'login-required',
+        checkLoginIframe: false,
+        promiseType: 'native'
+      }).then(authenticated => {
+        this.updateKeycloakTokens(keycloak);
+      });
+
+  };
+
+  updateKeycloakTokens = (keycloak) => {
+    cookie.save('Keycloak_Refresh_Token', keycloak.refreshToken, { path: '/' });
+    cookie.save('Keycloak_Token', keycloak.token, { path: '/' });
+    cookie.save('Keycloak_Id_Token', keycloak.idToken, { path: '/' });
+    this.getCdapToken(keycloak);
+  };
 
   render() {
     let footer;
