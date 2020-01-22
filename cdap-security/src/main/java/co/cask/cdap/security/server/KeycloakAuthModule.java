@@ -77,9 +77,10 @@ public class KeycloakAuthModule extends BasicAuthModule {
         } catch (UnsupportedCallbackException var9) {
             throw new AuthException(var9.getMessage());
         } catch (VerificationException ex) {
-            throw new AuthException("Keycloak Token is invalid");
+            response.setStatus(401);
+            //throw new AuthException("Keycloak Token is invalid");
         }
-
+        return AuthStatus.SEND_CONTINUE;
     }
 
     private AccessToken verifyKeycloakToken(String keycloakTokenString) throws VerificationException {
