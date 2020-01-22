@@ -34,7 +34,6 @@ import com.google.inject.Inject;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
 
-import io.netty.handler.codec.http.HttpHeaderNames;
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -138,7 +137,7 @@ public class GrantAccessToken {
             throws IOException, ServletException {
         AccessToken token = getTokenFromKNOX(request, response);
         if (token != null) {
-            setResponse(request, response, token,tokenExpiration);
+            setResponse(response, token,tokenExpiration);
             return Response.status(200).build();
         } else {
             return Response.status(201).build();
@@ -155,47 +154,31 @@ public class GrantAccessToken {
     public Response tokenFromKeycloak(@Context HttpServletRequest request, @Context HttpServletResponse response)
             throws IOException, ServletException {
         try {
-            AccessToken token = getTokenUsingKeycloak(request, response);
-            if (token != null)
+            org.keycloak.representations.AccessToken keycloakAccessToken = (org.keycloak.representations.AccessToken)request.getAttribute("keycloakAccessToken");
+            String keycloaktokenString = request.getHeader("keycloakToken");
+            AccessToken token = getcdapTokenUsingKeycloak(keycloakAccessToken,keycloaktokenString);
+            long issueTime = (long) keycloakAccessToken.getIssuedAt() * 1000;
+            long expireTime = (long) keycloakAccessToken.getExpiration() * 1000;
+            if (token != null) {
+                setResponse(response, token , (expireTime - issueTime));
                 return Response.status(200).build();
+
+            }
         } catch (Exception ex) {
             LOG.debug(ex.getMessage());
         }
         return Response.status(401).build();
     }
 
-    private void setResponse(HttpServletRequest request, HttpServletResponse response, AccessToken token,
-                             long tokenValidity) throws IOException, ServletException {
-
-        /* TO BE DONE */
-        JsonObject json = new JsonObject();
-        byte[] encodedIdentifier = Base64.encodeBase64(tokenCodec.encode(token));
-        json.addProperty(ExternalAuthenticationServer.ResponseFields.ACCESS_TOKEN,
-                new String(encodedIdentifier, Charsets.UTF_8));
-        json.addProperty(ExternalAuthenticationServer.ResponseFields.TOKEN_TYPE,
-                ExternalAuthenticationServer.ResponseFields.TOKEN_TYPE_BODY);
-        json.addProperty(ExternalAuthenticationServer.ResponseFields.EXPIRES_IN,
-                TimeUnit.SECONDS.convert(tokenValidity, TimeUnit.MILLISECONDS));
-        response.getOutputStream().print(json.toString());
-        response.setStatus(HttpServletResponse.SC_OK);
-    }
-
-    private AccessToken getTokenUsingKeycloak(HttpServletRequest request, HttpServletResponse response)
+    private AccessToken getcdapTokenUsingKeycloak(org.keycloak.representations.AccessToken keycloakAccessToken,String keycloaktokenString)
             throws IOException, ServletException, UnauthorizedException {
 
         List<String> userGroups = Collections.emptyList();
-        String keycloakTokenString = request.getHeader("keycloakToken");
-        org.keycloak.representations.AccessToken keycloakAccessToken = (org.keycloak.representations.AccessToken)request.getAttribute("keycloakAccessToken");
-        String username = keycloakAccessToken.getPreferredUsername();
         long issueTime = (long) keycloakAccessToken.getIssuedAt() * 1000;
         long expireTime = (long) keycloakAccessToken.getExpiration() * 1000;
-
-        AccessTokenIdentifier tokenIdentifier = new AccessTokenIdentifier(username, userGroups, issueTime, expireTime, keycloakTokenString);
-        AccessToken cdapToken = tokenManager.signIdentifier(tokenIdentifier);
+        String username = keycloakAccessToken.getPreferredUsername();
+        AccessToken cdapToken = getCdapToken(username,userGroups,issueTime,expireTime,keycloaktokenString);
         LOG.debug("Issued token for user {}", username);
-
-        setResponse(request, response, cdapToken , (expireTime - issueTime));
-
         return cdapToken;
     }
 
@@ -291,20 +274,25 @@ public class GrantAccessToken {
 
         String username = request.getUserPrincipal().getName();
         List<String> userGroups = Collections.emptyList();
-
         long issueTime = System.currentTimeMillis();
         long expireTime = issueTime + tokenValidity;
+
         // Create and sign a new AccessTokenIdentifier to generate the AccessToken.
-        AccessTokenIdentifier tokenIdentifier = new AccessTokenIdentifier(username, userGroups, issueTime, expireTime);
+        AccessToken cdapToken = getCdapToken(username,userGroups,issueTime,expireTime,null);
+        setResponse(response,cdapToken,tokenValidity);
+    }
+
+    private AccessToken getCdapToken(String username, List<String> userGroups, long issueTime, long  expireTime, String tokenString) {
+        AccessTokenIdentifier tokenIdentifier = new AccessTokenIdentifier(username, userGroups, issueTime, expireTime, tokenString);
         AccessToken token = tokenManager.signIdentifier(tokenIdentifier);
         LOG.debug("Issued token for user {}", username);
+        return token;
+    }
 
-        // Set response headers
-        response.setContentType("application/json;charset=UTF-8");
-        response.addHeader(HttpHeaderNames.CACHE_CONTROL.toString(), "no-store");
-        response.addHeader(HttpHeaderNames.PRAGMA.toString(), "no-cache");
+    private void setResponse(HttpServletResponse response, AccessToken token,
+                             long tokenValidity) throws IOException, ServletException {
 
-        // Set response body
+        /* TO BE DONE */
         JsonObject json = new JsonObject();
         byte[] encodedIdentifier = Base64.encodeBase64(tokenCodec.encode(token));
         json.addProperty(ExternalAuthenticationServer.ResponseFields.ACCESS_TOKEN,
@@ -313,9 +301,7 @@ public class GrantAccessToken {
                 ExternalAuthenticationServer.ResponseFields.TOKEN_TYPE_BODY);
         json.addProperty(ExternalAuthenticationServer.ResponseFields.EXPIRES_IN,
                 TimeUnit.SECONDS.convert(tokenValidity, TimeUnit.MILLISECONDS));
-
         response.getOutputStream().print(json.toString());
         response.setStatus(HttpServletResponse.SC_OK);
-
     }
 }
