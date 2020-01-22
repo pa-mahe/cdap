@@ -91,11 +91,15 @@ public class JASPIAuthenticationHandler extends AbstractAuthenticationHandler {
   }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 
 
   public Authenticator getHandlerAuthenticatorProvider(ServerAuthModule authModule , ServletCallbackHandler callbackHandler){
 
+=======
+  protected Authenticator getHandlerAuthenticatorProvider(ServerAuthModule authModule , ServletCallbackHandler callbackHandler){
+>>>>>>> 0951838a18... minor review changes
 =======
   protected Authenticator getHandlerAuthenticatorProvider(ServerAuthModule authModule , ServletCallbackHandler callbackHandler){
 >>>>>>> 0951838a18... minor review changes

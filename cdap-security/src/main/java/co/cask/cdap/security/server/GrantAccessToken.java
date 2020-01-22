@@ -177,10 +177,15 @@ public class GrantAccessToken {
         long issueTime = (long) keycloakAccessToken.getIssuedAt() * 1000;
         long expireTime = (long) keycloakAccessToken.getExpiration() * 1000;
 <<<<<<< HEAD
+<<<<<<< HEAD
 
         AccessTokenIdentifier tokenIdentifier = new AccessTokenIdentifier(username, userGroups, issueTime, expireTime, keycloakTokenString);
         AccessToken cdapToken = tokenManager.signIdentifier(tokenIdentifier);
 
+=======
+        String username = keycloakAccessToken.getPreferredUsername();
+        AccessToken cdapToken = getCdapToken(username,userGroups,issueTime,expireTime,keycloaktokenString);
+>>>>>>> 0951838a18... minor review changes
 =======
         String username = keycloakAccessToken.getPreferredUsername();
         AccessToken cdapToken = getCdapToken(username,userGroups,issueTime,expireTime,keycloaktokenString);
@@ -312,6 +317,9 @@ public class GrantAccessToken {
 <<<<<<< HEAD
 =======
         response.setStatus(HttpServletResponse.SC_OK);
+<<<<<<< HEAD
+>>>>>>> 0951838a18... minor review changes
+=======
 >>>>>>> 0951838a18... minor review changes
     }
 }

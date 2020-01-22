@@ -86,6 +86,10 @@ public class KeycloakAuthModule extends BasicAuthModule {
             //throw new AuthException("Keycloak Token is invalid");
         }
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+        return AuthStatus.SEND_CONTINUE;
+>>>>>>> 0951838a18... minor review changes
 =======
         return AuthStatus.SEND_CONTINUE;
 >>>>>>> 0951838a18... minor review changes
