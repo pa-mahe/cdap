@@ -184,8 +184,14 @@ function ComplexSchemaController (avsc, SCHEMA_TYPES, $scope, uuid, $timeout, Sc
       } catch (e) {
         let err = '' + e;
         err = err.split(':');
-        vm.error = err[0] + ': ' + err[1];
-        return;
+        //revalidate if parse lib retrn duplicate name
+        if (err[1].trim() === 'duplicate type name' && !vm.isDuplicateName(obj)) {
+          // do nothong because there is no duplicate name
+          console.log('capture invalid exception');
+        } else {
+          vm.error = err[0] + ': ' + err[1];
+          return;
+        }
       }
 
       if (!vm.error) {
@@ -197,6 +203,15 @@ function ComplexSchemaController (avsc, SCHEMA_TYPES, $scope, uuid, $timeout, Sc
 
     if (typeof vm.parentFormatOutput === 'function') {
       timeout = $timeout(vm.parentFormatOutput.bind(null, {updateDefault}));
+    }
+  };
+
+  vm.isDuplicateName = (obj) => {
+    if(obj && obj.fields) {
+      return obj.fields.map( value => value.name)
+        .some((item, itemIndex, items) => items.indexOf(item) !== items.lastIndexOf(item));
+    } else {
+      return false;
     }
   };
 

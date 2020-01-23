@@ -216,6 +216,30 @@ class HydratorPlusPlusNodeConfigCtrl {
       }
     });
   }
+
+  isDuplicateName(obj) {
+    if(obj && obj.fields) {
+      return obj.fields.map( value => value.name)
+        .some((item, itemIndex, items) => items.indexOf(item) !== items.lastIndexOf(item));
+    } else {
+      return false;
+    }
+  }
+
+  isSchemaAdvance(e, schema) {
+    let err = '' + e;
+    err = err.split(':');
+    //revalidate if parse lib retrn duplicate name
+    schema = typeof schema === 'string' ? JSON.parse(schema) : schema;
+    if (err[1].trim() === 'duplicate type name' && !this.isDuplicateName(schema)) {
+      // do nothong because there is no duplicate name
+      console.log('capture invalid exception');
+      return false;
+    } else {
+      return true;
+    }
+  }
+
   setDefaults(config = {}) {
     this.state = {
       configfetched : false,
@@ -254,7 +278,7 @@ class HydratorPlusPlusNodeConfigCtrl {
             try {
               this.avsc.parse(schemaObj.schema, { wrapUnions: true });
             } catch (e) {
-              this.state.schemaAdvance = true;
+              this.state.schemaAdvance = this.isSchemaAdvance(e, schemaObj.schema);
             }
           }
         });
@@ -262,7 +286,7 @@ class HydratorPlusPlusNodeConfigCtrl {
         try {
           this.avsc.parse(schemaArr, { wrapUnions: true });
         } catch (e) {
-          this.state.schemaAdvance = true;
+          this.state.schemaAdvance = this.isSchemaAdvance(e, schemaArr);
         }
       }
     }
