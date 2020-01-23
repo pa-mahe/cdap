@@ -308,7 +308,7 @@ const isPluginSink = (pluginType) => {
 };
 
 const isPluginSource = (pluginType) => {
-  return ['batchsource', 'realtimesource', 'streamingsource'].indexOf(pluginType) !== -1;
+  return ['batchsource', 'realtimesource', 'streamingsource', 'sparkdataframesource'].indexOf(pluginType) !== -1;
 };
 
 const isBatchPipeline = (pipelineType) => {
