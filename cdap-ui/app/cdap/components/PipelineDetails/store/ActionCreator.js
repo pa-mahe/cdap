@@ -192,7 +192,15 @@ const getRunDetails = ({namespace, appId, programType, programName, runid}) => {
     });
 };
 
+const addProperty = (propertyValue, propertyName) => {
+  if (propertyValue === -1) {
+    return {};
+  }
+  return {[propertyName]: propertyValue};
+};
+
 const getRuns = (params) => {
+  params = Object.assign({}, params, addProperty(params.limit, 'limit'), addProperty(params.start, 'start'), addProperty(params.end, 'end'));
   let runsFetch = MyPipelineApi.getRuns(params);
   runsFetch.subscribe(runs => {
     setRuns(runs);
@@ -208,17 +216,19 @@ const pollRunsCount = ({appId, programType, programName: programId, namespace}) 
     programType,
     programId
   }];
-  return MyPipelineApi
-    .pollRunsCount({ namespace }, postBody)
-    .subscribe(runsCountArray => {
-      let runsCount = runsCountArray[0].runCount;
-      PipelineDetailStore.dispatch({
-        type: ACTIONS.SET_RUNS_COUNT,
-        payload: {
-          runsCount
-        }
-      });
+  let runsCount = MyPipelineApi.pollRunsCount({ namespace }, postBody);
+  runsCount.subscribe(runsCountArray => {
+    let runsCount = runsCountArray[0].runCount;
+    PipelineDetailStore.dispatch({
+      type: ACTIONS.SET_RUNS_COUNT,
+      payload: {
+        runsCount
+      }
     });
+  }, (err) => {
+    console.log(err);
+  });
+  return runsCount;
 };
 
 const pollRuns = (params) => {
@@ -372,6 +382,7 @@ const reset = () => {
 };
 
 export {
+  addProperty,
   init,
   setOptionalProperty,
   setSchedule,
