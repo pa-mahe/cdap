@@ -68,6 +68,7 @@ class HydratorPlusPlusTopPanelCtrl {
     this.showIcon = window.CaskCommon.ThemeHelper.Theme.showPipelineCreateButton;
     $scope.getClassName = window.CaskCommon.Util.getClassNameForHeaderFooter();
 
+    this.isAutoSave = false;
     this.TEMPLATES = {
       'NAME': {
         allowed: {
@@ -180,6 +181,31 @@ class HydratorPlusPlusTopPanelCtrl {
       this.$timeout.cancel(this.focusTimeout);
       this.$timeout.cancel(this.fetchMacrosTimeout);
     });
+
+  /* FOR AUTO SAVE */
+    this.autoSaveTimeInterval = null;
+    this.autoSaveTimer = window.CaskCommon && window.CaskCommon.Theme && window.CaskCommon.Theme.autoSaveTimer ? window.CaskCommon.Theme.autoSaveTimer : 10000;
+  }
+
+  checkPipelineSaveOnAutoSave() {
+    if (this.isAutoSave) {
+      if (this.metadataExpanded) {
+        return;
+      }
+      this.onSaveDraft(true);
+    }
+  }
+
+  changeAutoSaveSwitch() {
+    this.isAutoSave = !this.isAutoSave;
+    this.checkPipelineSaveOnAutoSave();
+    if (this.isAutoSave) {
+      this.autoSaveTimeInterval = this.$interval(() => {
+        this.checkPipelineSaveOnAutoSave();
+      }, this.autoSaveTimer);
+    } else {
+      this.$interval.cancel(this.autoSaveTimeInterval);
+    }
   }
 
   setDefault() {
@@ -300,8 +326,8 @@ class HydratorPlusPlusTopPanelCtrl {
     delete exportConfig.__ui__;
     this.myPipelineExportModalService.show(config, exportConfig);
   }
-  onSaveDraft() {
-    this.HydratorPlusPlusConfigActions.saveAsDraft();
+  onSaveDraft(viaAutoSave = false) {
+    this.HydratorPlusPlusConfigActions.saveAsDraft(viaAutoSave);
     this.checkNameError();
     this.$window.localStorage.setItem('LastDraftId', this.HydratorPlusPlusConfigStore.getDraftId());
     this.$window.localStorage.setItem('LastPreviewId', this.currentPreviewId);
