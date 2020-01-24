@@ -61,7 +61,11 @@ final class ImpersonatedTwillController implements TwillController {
     this.delegate = delegate;
     this.impersonator = impersonator;
     this.programId = programId;
-    this.twillProgramId = new TwillRunProgramId(programId, delegate.getRunId().getId());
+    if (delegate.getRunId() != null) {
+      this.twillProgramId = new TwillRunProgramId(programId, delegate.getRunId().getId());
+    } else {
+      this.twillProgramId = new TwillRunProgramId(programId, null);
+    }
   }
 
   @Override
