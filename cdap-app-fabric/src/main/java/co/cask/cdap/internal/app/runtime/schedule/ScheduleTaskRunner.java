@@ -88,6 +88,11 @@ public final class ScheduleTaskRunner {
 
     TriggeringScheduleInfo triggeringScheduleInfo = getTriggeringScheduleInfo(job);
     systemArgs.put(ProgramOptionConstants.TRIGGERING_SCHEDULE_INFO, GSON.toJson(triggeringScheduleInfo));
+    
+    if(schedule.getProperties().containsKey(ProgramOptionConstants.LOGGED_IN_USER)) {
+      systemArgs.put(ProgramOptionConstants.LOGGED_IN_USER,
+          schedule.getProperties().get(ProgramOptionConstants.LOGGED_IN_USER));
+    }
 
     execute(programId, systemArgs, userArgs);
     LOG.info("Successfully started program {} in schedule {}.", schedule.getProgramId(), schedule.getName());
