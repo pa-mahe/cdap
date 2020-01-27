@@ -119,17 +119,18 @@ public class ConsoleSettingsHttpHandler extends AbstractHttpHandler {
   @AuditPolicy(AuditDetail.REQUEST_BODY)
   public void add(FullHttpRequest request, HttpResponder responder) throws Exception {
     String data = request.content().toString(StandardCharsets.UTF_8);
-
+    HashMap<String, String> originalPropertiesMap = new HashMap<>();
+    HashMap<String, String> newPropertiesMap = new HashMap<>();
+    HashMap<String, String> finalPropertiesMap = new HashMap<>();
     String userId = Objects.firstNonNull(SecurityRequestContext.getUserId(), "");
     Config userConfig;
+    Config newUserConfig;
     try {
       userConfig = store.get(userId);
     } catch (ConfigNotFoundException e) {
       responder.sendJson(HttpResponseStatus.BAD_REQUEST, "User Config not Found");
       return;
     }
-    HashMap<String, String> originalPropertiesMap = new HashMap<>();
-    HashMap<String, String> newPropertiesMap = new HashMap<>();
     try {
       JsonObject jsonObject = new JsonObject();
       JsonObject originalProperties = JSON_PARSER.parse(userConfig.getProperties().get(CONFIG_PROPERTY)).getAsJsonObject();
@@ -146,18 +147,12 @@ public class ConsoleSettingsHttpHandler extends AbstractHttpHandler {
       return;
     }
 
-    HashMap<String, String> finalPropertiesMap = new HashMap<>();
-
     finalPropertiesMap.putAll(originalPropertiesMap);
     finalPropertiesMap.putAll(newPropertiesMap);
-
     String jsonStr = new Gson().toJson(finalPropertiesMap);
-
     Map<String, String> propMap = ImmutableMap.of(CONFIG_PROPERTY, jsonStr);
-
-    Config newUserConfig = new Config(userId, propMap);
+    newUserConfig = new Config(userId, propMap);
     store.put(newUserConfig);
-
     responder.sendStatus(HttpResponseStatus.OK);
   }
 
