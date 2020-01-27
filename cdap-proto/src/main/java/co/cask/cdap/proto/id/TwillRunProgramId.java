@@ -36,8 +36,9 @@ public class TwillRunProgramId extends NamespacedEntityId implements ParentedId<
     if (programId == null) {
       throw new NullPointerException("Program ID cannot be null.");
     }
+    
     if (twillRunId == null) {
-      throw new NullPointerException("Twill Run Id cannot be null.");
+      twillRunId = "0";
     }
     this.programId = programId;
     this.twillRunId = twillRunId;

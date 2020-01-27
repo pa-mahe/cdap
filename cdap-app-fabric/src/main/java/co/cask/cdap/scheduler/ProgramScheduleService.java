@@ -22,6 +22,9 @@ import co.cask.cdap.common.AlreadyExistsException;
 import co.cask.cdap.common.BadRequestException;
 import co.cask.cdap.common.NotFoundException;
 import co.cask.cdap.common.ProfileConflictException;
+import co.cask.cdap.config.PreferencesService;
+import co.cask.cdap.internal.app.runtime.ProgramOptionConstants;
+import co.cask.cdap.internal.app.runtime.SystemArguments;
 import co.cask.cdap.internal.app.runtime.schedule.ProgramSchedule;
 import co.cask.cdap.internal.app.runtime.schedule.ProgramScheduleRecord;
 import co.cask.cdap.internal.app.runtime.schedule.ProgramScheduleStatus;
@@ -42,6 +45,7 @@ import com.google.common.base.Objects;
 import com.google.inject.Inject;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -49,22 +53,30 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Used to interact with the Scheduler. Performs authorization checks and other wrapper like functionality.
  *
  * TODO: push predicates down to the lowest level to make things more efficient
  */
 public class ProgramScheduleService {
+  private static final Logger LOG = LoggerFactory.getLogger(ProgramScheduleService.class);
   private final AuthorizationEnforcer authorizationEnforcer;
   private final AuthenticationContext authenticationContext;
   private final Scheduler scheduler;
+  private final PreferencesService preferencesService;
 
   @Inject
   ProgramScheduleService(AuthorizationEnforcer authorizationEnforcer,
-                         AuthenticationContext authenticationContext, Scheduler scheduler) {
+                         AuthenticationContext authenticationContext,
+                         Scheduler scheduler,
+                         PreferencesService preferencesService) {
     this.authorizationEnforcer = authorizationEnforcer;
     this.authenticationContext = authenticationContext;
     this.scheduler = scheduler;
+    this.preferencesService = preferencesService;
   }
 
   /**
@@ -229,6 +241,17 @@ public class ProgramScheduleService {
   public void resume(ScheduleId scheduleId) throws Exception {
     ProgramSchedule schedule = scheduler.getSchedule(scheduleId);
     authorizationEnforcer.enforce(schedule.getProgramId(), authenticationContext.getPrincipal(), Action.EXECUTE);
+    ProgramId progId = schedule.getProgramId();
+    if (SystemArguments.checkUserIdentityPropagationPreference(progId, preferencesService)) {
+      String user = authenticationContext.getPrincipal().getName();
+      LOG.debug("Adding loggedInUser {} to program {} schedule {}", authenticationContext.getPrincipal().getName(),
+          progId, schedule);
+      Map<String, String> newProperties = new HashMap<>(schedule.getProperties());
+      newProperties.put(ProgramOptionConstants.LOGGED_IN_USER, user);
+      ProgramSchedule updatedSchedule = new ProgramSchedule(schedule.getName(), schedule.getDescription(), progId,
+          newProperties, schedule.getTrigger(), schedule.getConstraints(), schedule.getTimeoutMillis());
+      scheduler.updateSchedule(updatedSchedule);
+    }
     scheduler.enableSchedule(scheduleId);
   }
 

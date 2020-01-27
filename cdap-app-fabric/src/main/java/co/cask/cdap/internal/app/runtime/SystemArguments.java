@@ -24,6 +24,7 @@ import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.common.service.RetryStrategies;
 import co.cask.cdap.common.service.RetryStrategy;
+import co.cask.cdap.config.PreferencesService;
 import co.cask.cdap.logging.appender.LogAppenderInitializer;
 import co.cask.cdap.proto.ProgramType;
 import co.cask.cdap.proto.id.NamespaceId;
@@ -518,6 +519,18 @@ public final class SystemArguments {
     return null;
   }
 
+  public static boolean checkUserIdentityPropagationPreference(ProgramId programId,
+      PreferencesService preferencesService) {
+    Map<String, String> prefs = preferencesService.getResolvedProperties(programId);
+    String key = SystemArguments.USER_IMPERSONATION_ENABLED;
+    if (prefs.containsKey(key)) {
+      if (prefs.get(key).equalsIgnoreCase("true")) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
   private SystemArguments() {
   }
 }

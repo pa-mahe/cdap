@@ -106,7 +106,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
-import javax.security.auth.kerberos.KerberosPrincipal;
 
 /**
  * Service that manages lifecycle of Programs.
@@ -388,7 +387,7 @@ public class ProgramLifecycleService {
     }
 
     Map<String, String> sysArgs = propertiesResolver.getSystemProperties(Id.Program.fromEntityId(programId));
-    if (checkUserIdentityPropagationPreference(programId)) {
+    if (SystemArguments.checkUserIdentityPropagationPreference(programId, preferencesService)) {
         LOG.debug("user identity propagation is enabled");
         sysArgs.put(ProgramOptionConstants.LOGGED_IN_USER, authenticationContext.getPrincipal().getName());
     }
@@ -507,7 +506,7 @@ public class ProgramLifecycleService {
     Map<String, String> sysArgs = propertiesResolver.getSystemProperties(Id.Program.fromEntityId(programId));
     sysArgs.put(ProgramOptionConstants.SKIP_PROVISIONING, "true");
     sysArgs.put(SystemArguments.PROFILE_NAME, ProfileId.NATIVE.getScopedName());
-    if (checkUserIdentityPropagationPreference(programId)) {
+    if (SystemArguments.checkUserIdentityPropagationPreference(programId, preferencesService)) {
         sysArgs.put(ProgramOptionConstants.LOGGED_IN_USER, authenticationContext.getPrincipal().getName());
     }
     
@@ -1110,16 +1109,5 @@ public class ProgramLifecycleService {
                                                     plugin.getPluginClass().getType(),
                                                     plugin.getPluginClass().getRequirements()))
       .collect(Collectors.toSet());
-  }
-  
-  private boolean checkUserIdentityPropagationPreference(ProgramId programId) {
-    Map<String, String> prefs = preferencesService.getResolvedProperties(programId);
-    String key = SystemArguments.USER_IMPERSONATION_ENABLED;
-    if (prefs.containsKey(key)) {
-      if (prefs.get(key).equalsIgnoreCase("true")) {
-        return true;
-      }
-    }
-    return false;
-  }
+  } 
 }
