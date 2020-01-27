@@ -18,4 +18,8 @@ public class KeycloakJAASAuthenticationHandler extends JASPIAuthenticationHandle
         ServerAuthModule authModule = new KeycloakAuthModule(callbackHandler, "JAASRealm",handlerProps);
         return getHandlerAuthenticatorProvider(authModule, callbackHandler);
     }
+    @Override
+    protected boolean isEmbeddTokenRequired(){
+        return true;
+    }
 }

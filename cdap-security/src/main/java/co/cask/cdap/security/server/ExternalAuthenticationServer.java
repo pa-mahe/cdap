@@ -239,9 +239,9 @@ public class ExternalAuthenticationServer extends AbstractIdleService {
 
     copyProps(handlerProps, getAuthHandlerConfigs(cConfiguration));
     copyProps(handlerProps, getAuthHandlerConfigs(sConfiguration));
-    copyProps(handlerProps, getAuthorizationHandlerConfigs(sConfiguration));
+    copyProps(handlerProps, getAuthorizationHandlerConfigs(cConfiguration));
     authenticationHandler.init(handlerProps);
-    grantAccessToken.init();
+    grantAccessToken.init(authenticationHandler);
   }
 
   // we don't leverage Map#putAll, because we want to warn if overwriting some keys

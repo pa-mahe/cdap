@@ -91,6 +91,8 @@ public class DefaultAuthorizationEnforcer extends AbstractAuthorizationEnforcer 
     watch.start();
     Set<? extends EntityId> moreVisibleEntities;
     try {
+      AuthorizerClassLoader authorizerClassLoader = authorizerInstantiator.getAuthorizerClassLoader();
+      ClassLoaders.setContextClassLoader(authorizerClassLoader);
       moreVisibleEntities = authorizerInstantiator.get().isVisible(difference, principal);
     } finally {
       watch.stop();
