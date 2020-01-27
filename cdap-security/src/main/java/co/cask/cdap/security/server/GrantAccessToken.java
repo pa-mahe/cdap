@@ -43,6 +43,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.util.*;
 import java.text.ParseException;
 import java.util.concurrent.TimeUnit;
+import javax.security.auth.Subject;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -63,6 +64,7 @@ public class GrantAccessToken {
     private final long tokenExpiration;
     private final long extendedTokenExpiration;
     private static CConfiguration conf;
+    private static boolean isEmbeddToken;
 
     /**
      * Create a new GrantAccessToken object to generate tokens for authorized users.
@@ -81,8 +83,9 @@ public class GrantAccessToken {
     /**
      * Initialize the TokenManager.
      */
-    public void init() {
+    public void init(AbstractAuthenticationHandler authenticationHandler) {
         tokenManager.start();
+        isEmbeddToken = authenticationHandler.isEmbeddTokenRequired();
     }
 
     /**
@@ -99,7 +102,6 @@ public class GrantAccessToken {
         public static final String GET_TOKEN = "token";
         public static final String GET_TOKEN_FROM_KNOX = "knoxToken";
         public static final String GET_EXTENDED_TOKEN = "extendedtoken";
-        public static final String GET_TOKEN_FROM_KEYCLOAK = "keycloakToken";
     }
 
 
@@ -128,7 +130,7 @@ public class GrantAccessToken {
     }
 
     /**
-     *  Get an AccessToken from KNOXToken
+     * Get an AccessToken from KNOXToken
      */
     @Path(Paths.GET_TOKEN_FROM_KNOX)
     @GET
@@ -137,7 +139,7 @@ public class GrantAccessToken {
             throws IOException, ServletException {
         AccessToken token = getTokenFromKNOX(request, response);
         if (token != null) {
-            setResponse(response, token,tokenExpiration);
+            setResponse(response, token, tokenExpiration);
             return Response.status(200).build();
         } else {
             return Response.status(201).build();
@@ -147,40 +149,6 @@ public class GrantAccessToken {
     /**
      * Get an AccessToken from KeycloakToken.
      */
-
-    @Path(Paths.GET_TOKEN_FROM_KEYCLOAK)
-    @GET
-    @Produces("application/json")
-    public Response tokenFromKeycloak(@Context HttpServletRequest request, @Context HttpServletResponse response)
-            throws IOException, ServletException {
-        try {
-            org.keycloak.representations.AccessToken keycloakAccessToken = (org.keycloak.representations.AccessToken)request.getAttribute("keycloakAccessToken");
-            String keycloaktokenString = request.getHeader("keycloakToken");
-            AccessToken token = getcdapTokenUsingKeycloak(keycloakAccessToken,keycloaktokenString);
-            long issueTime = (long) keycloakAccessToken.getIssuedAt() * 1000;
-            long expireTime = (long) keycloakAccessToken.getExpiration() * 1000;
-            if (token != null) {
-                setResponse(response, token , (expireTime - issueTime));
-                return Response.status(200).build();
-
-            }
-        } catch (Exception ex) {
-            LOG.debug(ex.getMessage());
-        }
-        return Response.status(401).build();
-    }
-
-    private AccessToken getcdapTokenUsingKeycloak(org.keycloak.representations.AccessToken keycloakAccessToken,String keycloaktokenString)
-            throws IOException, ServletException, UnauthorizedException {
-
-        List<String> userGroups = Collections.emptyList();
-        long issueTime = (long) keycloakAccessToken.getIssuedAt() * 1000;
-        long expireTime = (long) keycloakAccessToken.getExpiration() * 1000;
-        String username = keycloakAccessToken.getPreferredUsername();
-        AccessToken cdapToken = getCdapToken(username,userGroups,issueTime,expireTime,keycloaktokenString);
-        LOG.debug("Issued token for user {}", username);
-        return cdapToken;
-    }
 
     private AccessToken getTokenFromKNOX(HttpServletRequest request, HttpServletResponse response)
             throws IOException, ServletException {
@@ -276,13 +244,25 @@ public class GrantAccessToken {
         List<String> userGroups = Collections.emptyList();
         long issueTime = System.currentTimeMillis();
         long expireTime = issueTime + tokenValidity;
+        String iamTokenString = "";
 
-        // Create and sign a new AccessTokenIdentifier to generate the AccessToken.
-        AccessToken cdapToken = getCdapToken(username,userGroups,issueTime,expireTime,null);
-        setResponse(response,cdapToken,tokenValidity);
+        if (isEmbeddToken) {
+            if (request.getUserPrincipal() instanceof JAASUserPrincipal) {
+                Subject sub = ((JAASUserPrincipal) request.getUserPrincipal()).getSubject();
+                if (sub != null) {
+                    issueTime = (long)request.getAttribute("issueTime");
+                    expireTime = (long)request.getAttribute("expireTime");
+                    tokenValidity = expireTime-issueTime;
+                    iamTokenString = sub.getPrivateCredentials().iterator().next().toString();
+                }
+            }
+        }
+
+        AccessToken cdapToken = getCdapToken(username, userGroups, issueTime, expireTime, iamTokenString);
+        setResponse(response, cdapToken, tokenValidity);
     }
 
-    private AccessToken getCdapToken(String username, List<String> userGroups, long issueTime, long  expireTime, String tokenString) {
+    private AccessToken getCdapToken(String username, List<String> userGroups, long issueTime, long expireTime, String tokenString) {
         AccessTokenIdentifier tokenIdentifier = new AccessTokenIdentifier(username, userGroups, issueTime, expireTime, tokenString);
         AccessToken token = tokenManager.signIdentifier(tokenIdentifier);
         LOG.debug("Issued token for user {}", username);

@@ -81,4 +81,12 @@ public abstract class AbstractAuthenticationHandler extends ConstraintSecurityHa
    * Get configuration for the LoginModule.
    */
   protected abstract Configuration getLoginModuleConfiguration();
+
+  /**
+   * Get configuration for Embedding Token
+   */
+  protected boolean isEmbeddTokenRequired(){
+    return false;
+  }
+
 }

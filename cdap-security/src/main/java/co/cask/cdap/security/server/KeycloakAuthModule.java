@@ -2,8 +2,10 @@ package co.cask.cdap.security.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.eclipse.jetty.security.jaspi.modules.BasicAuthModule;
+import org.eclipse.jetty.util.B64Code;
 import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.log.Logger;
+import org.eclipse.jetty.util.security.Password;
 import org.keycloak.adapters.KeycloakDeployment;
 import org.keycloak.adapters.KeycloakDeploymentBuilder;
 import org.keycloak.adapters.rotation.AdapterTokenVerifier;
@@ -26,7 +28,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class KeycloakAuthModule extends BasicAuthModule {
-    private static final Logger LOG = Log.getLogger(org.eclipse.jetty.security.jaspi.modules.BasicAuthModule.class);
     private String realmName;
     private static KeycloakDeployment deployment;
     private static Map<String, String> handlerProps;
@@ -49,20 +50,14 @@ public class KeycloakAuthModule extends BasicAuthModule {
 
         try {
             if (credentials != null) {
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("Credentials: " + credentials, new Object[0]);
-                }
-
-                if (this.login(clientSubject, credentials, "BASIC", messageInfo)) {
+                credentials = credentials.substring(credentials.indexOf(32) + 1);
+                AccessToken keycloakAccessToken = verifyKeycloakToken(credentials);
+                String userName = keycloakAccessToken.getPreferredUsername();
+                if(this.login(clientSubject, userName, new Password(credentials), "BASIC", messageInfo)){
+                    request.setAttribute("issueTime",(long) keycloakAccessToken.getIssuedAt() * 1000);
+                    request.setAttribute("expireTime",(long) keycloakAccessToken.getExpiration() * 1000);
                     return AuthStatus.SUCCESS;
                 }
-            }
-
-            if (request.getHeader("keycloakToken") != null) {
-                String keycloakTokenString = request.getHeader("keycloakToken");
-                AccessToken keycloakAccessToken = verifyKeycloakToken(keycloakTokenString);
-                request.setAttribute("keycloakAccessToken", keycloakAccessToken);
-                return AuthStatus.SUCCESS;
             }
 
             if (!this.isMandatory(messageInfo)) {
@@ -111,7 +106,9 @@ public class KeycloakAuthModule extends BasicAuthModule {
             String clientId = handlerProps.get("client_id");
             String clientSecret = handlerProps.get("client_secret");
             String realm = handlerProps.get("realm");
-            String authServerUrl = handlerProps.get("authserverurl");
+            String keycloakauthserveraddress = handlerProps.get("keycloakauthserveraddress");
+            String keycloakauthserverport = handlerProps.get("keycloakauthserverport");
+            String authServerUrl = "http://"+keycloakauthserveraddress+":"+keycloakauthserverport+"/auth";
             Map<String, Object> clientCredentials = new HashMap();
             clientCredentials.put("secret", clientSecret);
             org.keycloak.authorization.client.Configuration keycloakConf = new org.keycloak.authorization.client.Configuration(authServerUrl, realm, clientId, clientCredentials, null);
