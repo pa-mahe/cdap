@@ -119,8 +119,8 @@ public class ConsoleSettingsHttpHandler extends AbstractHttpHandler {
   @AuditPolicy(AuditDetail.REQUEST_BODY)
   public void add(FullHttpRequest request, HttpResponder responder) throws Exception {
     String data = request.content().toString(StandardCharsets.UTF_8);
-    HashMap<String, String> originalPropertiesMap = new HashMap<>();
-    HashMap<String, String> newPropertiesMap = new HashMap<>();
+    HashMap<String, String> originalPropertiesMap;
+    HashMap<String, String> newPropertiesMap;
     HashMap<String, String> finalPropertiesMap = new HashMap<>();
     String userId = Objects.firstNonNull(SecurityRequestContext.getUserId(), "");
     Config userConfig;
@@ -132,7 +132,6 @@ public class ConsoleSettingsHttpHandler extends AbstractHttpHandler {
       return;
     }
     try {
-      JsonObject jsonObject = new JsonObject();
       JsonObject originalProperties = JSON_PARSER.parse(userConfig.getProperties().get(CONFIG_PROPERTY)).getAsJsonObject();
       originalPropertiesMap = new Gson().fromJson(originalProperties, HashMap.class);
     }catch (Exception e){
