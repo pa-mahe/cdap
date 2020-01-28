@@ -840,6 +840,9 @@ function makeApp (authAddress, cdapConfig, uiSettings) {
           request({
               url: appDetailUrl.replace('export',pipeline),
               method: 'GET',
+              headers: {
+                authorization: 'Bearer ' + req.cookies['CDAP_Auth_Token']
+              }
             },
               function (nerr, nres, nbody) {
                 if (nerr || nres.statusCode !== 200) {
