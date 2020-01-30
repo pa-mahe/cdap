@@ -25,6 +25,7 @@ import co.cask.cdap.internal.app.program.MessagingProgramStateWriter;
 import co.cask.cdap.internal.app.program.ProgramStateWriterWithHeartBeat;
 import co.cask.cdap.messaging.MessagingService;
 import co.cask.cdap.messaging.guice.MessagingClientModule;
+import co.cask.cdap.proto.ProgramType;
 import co.cask.cdap.proto.id.ProgramRunId;
 import com.google.common.base.Throwables;
 import com.google.gson.Gson;
@@ -143,7 +144,17 @@ public class TwillAppLifecycleEventHandler extends AbortOnTimeoutEventHandler {
 
     if (runningPublished.compareAndSet(false, true)) {
       // The program is marked as running when the first container for the program is launched
-      programStateWriterWithHeartBeat.running(twillRunId.getId());
+      /*
+       * For Spark program, skip sending RUNNING status notification
+       * as this notification will be sent by Spark Driver itself.
+       * Check RAFD-3500
+       */
+      if (!(programRunId.getType().getPrettyName().equalsIgnoreCase(
+          ProgramType.SPARK.getPrettyName()))) {
+        programStateWriterWithHeartBeat.running(twillRunId.getId());
+      } else {
+        programStateWriterWithHeartBeat.scheduleHeartBeatThread();
+      }
     }
   }
 
