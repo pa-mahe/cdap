@@ -27,20 +27,18 @@ import co.cask.http.AbstractHttpHandler;
 import co.cask.http.HttpResponder;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
+import com.google.gson.*;
 import com.google.inject.Inject;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
+import javax.ws.rs.*;
 
 /**
  * Console Settings HTTP Handler.
@@ -110,6 +108,46 @@ public class ConsoleSettingsHttpHandler extends AbstractHttpHandler {
     String userId = Objects.firstNonNull(SecurityRequestContext.getUserId(), "");
     Config userConfig = new Config(userId, propMap);
     store.put(userConfig);
+    responder.sendStatus(HttpResponseStatus.OK);
+  }
+
+  @Path("/")
+  @POST
+  @AuditPolicy(AuditDetail.REQUEST_BODY)
+  public void add(FullHttpRequest request, HttpResponder responder) throws Exception {
+    String data = request.content().toString(StandardCharsets.UTF_8);
+    HashMap<String, String> originalPropertiesMap;
+    HashMap<String, String> newPropertiesMap;
+    HashMap<String, String> finalPropertiesMap = new HashMap<>();
+    String userId = Objects.firstNonNull(SecurityRequestContext.getUserId(), "");
+    Config userConfig;
+    Config newUserConfig;
+    try {
+      userConfig = store.get(userId);
+    } catch (ConfigNotFoundException e) {
+      responder.sendJson(HttpResponseStatus.BAD_REQUEST, "User Config not Found");
+      return;
+    }
+    try {
+      JsonObject originalProperties = JSON_PARSER.parse(userConfig.getProperties().get(CONFIG_PROPERTY)).getAsJsonObject();
+      originalPropertiesMap = new Gson().fromJson(originalProperties, HashMap.class);
+    } catch (Exception e) {
+      responder.sendJson(HttpResponseStatus.INTERNAL_SERVER_ERROR, "User Config Json is incorrect");
+      return;
+    }
+    try {
+      newPropertiesMap = new Gson().fromJson(JSON_PARSER.parse(data).getAsJsonObject(), HashMap.class);
+    } catch (Exception e) {
+      responder.sendJson(HttpResponseStatus.BAD_REQUEST, "Invalid JSON in body");
+      return;
+    }
+
+    finalPropertiesMap.putAll(originalPropertiesMap);
+    finalPropertiesMap.putAll(newPropertiesMap);
+    String jsonStr = new Gson().toJson(finalPropertiesMap);
+    Map<String, String> propMap = ImmutableMap.of(CONFIG_PROPERTY, jsonStr);
+    newUserConfig = new Config(userId, propMap);
+    store.put(newUserConfig);
     responder.sendStatus(HttpResponseStatus.OK);
   }
 
