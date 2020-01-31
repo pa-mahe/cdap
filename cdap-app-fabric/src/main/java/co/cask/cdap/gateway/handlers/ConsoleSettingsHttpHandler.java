@@ -131,14 +131,13 @@ public class ConsoleSettingsHttpHandler extends AbstractHttpHandler {
     try {
       JsonObject originalProperties = JSON_PARSER.parse(userConfig.getProperties().get(CONFIG_PROPERTY)).getAsJsonObject();
       originalPropertiesMap = new Gson().fromJson(originalProperties, HashMap.class);
-    } catch (Exception e){
+    } catch (Exception e) {
       responder.sendJson(HttpResponseStatus.INTERNAL_SERVER_ERROR, "User Config Json is incorrect");
       return;
     }
     try {
       newPropertiesMap = new Gson().fromJson(JSON_PARSER.parse(data).getAsJsonObject(), HashMap.class);
-    } catch (Exception e)
-    {
+    } catch (Exception e) {
       responder.sendJson(HttpResponseStatus.BAD_REQUEST, "Invalid JSON in body");
       return;
     }
