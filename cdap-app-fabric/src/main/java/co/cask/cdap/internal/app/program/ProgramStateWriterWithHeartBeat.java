@@ -121,7 +121,7 @@ public class ProgramStateWriterWithHeartBeat {
    * If executor service isn't initialized or if its shutdown
    * create a new exector service and schedule a heartbeat thread
    */
-  private void scheduleHeartBeatThread() {
+  public void scheduleHeartBeatThread() {
     if (scheduledExecutorService == null || scheduledExecutorService.isShutdown()) {
       scheduledExecutorService =
         Executors.newSingleThreadScheduledExecutor(Threads.createDaemonThreadFactory("program-heart-beat"));

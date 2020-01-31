@@ -343,7 +343,8 @@ public class AppMetadataStore extends MetadataStoreDataset {
       LOG.debug("Found yarn application url {} for workflow name {}, runId {}, nodeId {}",
           properties.get(ProgramOptionConstants.YARN_APPLICATION_TRACKING_URL_KEY),
           workflowName, workflowRun, workflowNodeId);
-      String appKey = ProgramOptionConstants.YARN_APPLICATION_TRACKING_URL_KEY + "." + workflowNodeId;
+      //String appKey = ProgramOptionConstants.YARN_APPLICATION_TRACKING_URL_KEY + "." + workflowNodeId;
+      String appKey = ProgramOptionConstants.YARN_APPLICATION_TRACKING_URL_KEY;
       newProps.put(appKey, properties.get(ProgramOptionConstants.YARN_APPLICATION_TRACKING_URL_KEY));
     }
     write(key, RunRecordMeta.builder(record).setProperties(newProps).setSourceId(sourceId).build());
