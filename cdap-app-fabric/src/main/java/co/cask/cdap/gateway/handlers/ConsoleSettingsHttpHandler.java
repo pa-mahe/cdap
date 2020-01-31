@@ -46,7 +46,6 @@ import javax.ws.rs.*;
 @Path(Constants.Gateway.API_VERSION_3 + "/configuration/user")
 public class ConsoleSettingsHttpHandler extends AbstractHttpHandler {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ConsoleSettingsHttpHandler.class);
   private static final JsonParser JSON_PARSER = new JsonParser();
 
   private static final String CONFIG_PROPERTY = "property";
@@ -97,7 +96,6 @@ public class ConsoleSettingsHttpHandler extends AbstractHttpHandler {
   public void set(FullHttpRequest request, HttpResponder responder) throws Exception {
     String data = request.content().toString(StandardCharsets.UTF_8);
     if (!isValidJSON(data)) {
-      LOG.info("incorrect json");
       responder.sendJson(HttpResponseStatus.BAD_REQUEST, "Invalid JSON in body");
       return;
     }
@@ -107,7 +105,6 @@ public class ConsoleSettingsHttpHandler extends AbstractHttpHandler {
     //Config Properties : Map (Key = CONFIG_PROPERTY, Value = Serialized JSON string of properties)
     //User Settings configurations are stored under empty NAMESPACE.
     Map<String, String> propMap = ImmutableMap.of(CONFIG_PROPERTY, data);
-    LOG.info("Creating prop map " + propMap);
     String userId = Objects.firstNonNull(SecurityRequestContext.getUserId(), "");
     Config userConfig = new Config(userId, propMap);
     store.put(userConfig);
@@ -134,13 +131,13 @@ public class ConsoleSettingsHttpHandler extends AbstractHttpHandler {
     try {
       JsonObject originalProperties = JSON_PARSER.parse(userConfig.getProperties().get(CONFIG_PROPERTY)).getAsJsonObject();
       originalPropertiesMap = new Gson().fromJson(originalProperties, HashMap.class);
-    }catch (Exception e){
+    } catch (Exception e){
       responder.sendJson(HttpResponseStatus.INTERNAL_SERVER_ERROR, "User Config Json is incorrect");
       return;
     }
     try {
       newPropertiesMap = new Gson().fromJson(JSON_PARSER.parse(data).getAsJsonObject(), HashMap.class);
-    }catch (Exception e)
+    } catch (Exception e)
     {
       responder.sendJson(HttpResponseStatus.BAD_REQUEST, "Invalid JSON in body");
       return;
