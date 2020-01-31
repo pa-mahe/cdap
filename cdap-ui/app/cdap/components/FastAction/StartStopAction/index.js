@@ -23,7 +23,7 @@ import FastActionButton from '../FastActionButton';
 import {convertProgramToApi} from 'services/program-api-converter';
 import ConfirmationModal from 'components/ConfirmationModal';
 import IconSVG from 'components/IconSVG';
-import {Tooltip} from 'reactstrap';
+import { Tooltip } from 'reactstrap';
 import T from 'i18n-react';
 
 export default class StartStopAction extends Component {
@@ -153,6 +153,7 @@ export default class StartStopAction extends Component {
         iconClass = 'text-danger';
       }
     }
+    const isButtonDisable = this.props.isActionDisable(this.startStop, this.props.type);
 
     return (
       <span className="btn btn-secondary btn-sm">
@@ -189,6 +190,7 @@ export default class StartStopAction extends Component {
                 iconClasses={iconClass}
                 action={this.toggleModal}
                 id={this.tooltipID}
+                disabled={isButtonDisable}
               />
               <Tooltip
                 placement="top"
@@ -214,5 +216,7 @@ StartStopAction.propTypes = {
     applicationId: PropTypes.string.isRequired,
     programType: PropTypes.string.isRequired
   }),
-  onSuccess: PropTypes.func
+  onSuccess: PropTypes.func,
+  isActionDisable: PropTypes.func,
+  type: PropTypes.string
 };
