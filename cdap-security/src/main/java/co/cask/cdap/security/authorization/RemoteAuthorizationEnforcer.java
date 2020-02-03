@@ -82,7 +82,7 @@ public class RemoteAuthorizationEnforcer extends AbstractAuthorizationEnforcer {
       }
     };
 
-  private static final Predicate<Map.Entry<VisibilityKey, Boolean>> VISIBILITY_KEYS_FILTER =
+  protected static final Predicate<Map.Entry<VisibilityKey, Boolean>> VISIBILITY_KEYS_FILTER =
     new Predicate<Map.Entry<VisibilityKey, Boolean>>() {
       @Override
       public boolean apply(Map.Entry<VisibilityKey, Boolean> input) {
@@ -215,11 +215,11 @@ public class RemoteAuthorizationEnforcer extends AbstractAuthorizationEnforcer {
     return keyMap;
   }
 
-  private Set<? extends EntityId> toEntityIds(Iterable<? extends VisibilityKey> keys) {
+  protected static Set<? extends EntityId> toEntityIds(Iterable<? extends VisibilityKey> keys) {
     return ImmutableSet.copyOf(Iterables.transform(keys, VISIBILITY_KEY_ENTITY_ID_FUNCTION));
   }
 
-  private Iterable<VisibilityKey> toVisibilityKeys(final Principal principal, Set<? extends EntityId> entityIds) {
+  protected static Iterable<VisibilityKey> toVisibilityKeys(final Principal principal, Set<? extends EntityId> entityIds) {
     return Iterables.transform(entityIds, new Function<EntityId, VisibilityKey>() {
       @Override
       public VisibilityKey apply(EntityId entityId) {
@@ -228,7 +228,7 @@ public class RemoteAuthorizationEnforcer extends AbstractAuthorizationEnforcer {
     });
   }
 
-  private static class VisibilityKey {
+  protected static class VisibilityKey {
     private final Principal principal;
     private final EntityId entityId;
 
