@@ -24,7 +24,6 @@ import StatusMapper from 'services/StatusMapper';
 import T from 'i18n-react';
 import { pollRunsCount } from 'components/PipelineDetails/store/ActionCreator';
 import PipelineDetailStore from 'components/PipelineDetails/store';
-import { GLOBALS } from 'services/global-constants';
 
 export default class ProgramMetrics extends Component {
   constructor(props) {
@@ -54,7 +53,7 @@ export default class ProgramMetrics extends Component {
     }
     let _pollRunsCount = pollRunsCount({
       appId: params.appId,
-      programType: params.programType === GLOBALS.etlDataPipeline ? 'Workflow' : 'Spark',
+      programType: this.props.entity.programType,
       programName: params.programId,
       namespace: params.namespace
     });
