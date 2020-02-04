@@ -18,6 +18,9 @@ import React, {Component} from 'react';
 import find from 'lodash/find';
 import NamespaceStore from 'services/NamespaceStore';
 import {Redirect} from 'react-router-dom';
+import MyUserStoreApi from 'api/userstore';
+import {objectQuery} from 'services/helpers';
+import isEmpty from 'lodash/isEmpty';
 
 export default class RouteToNamespace extends Component {
   constructor(props) {
@@ -46,35 +49,46 @@ export default class RouteToNamespace extends Component {
     if (!list || list.length === 0) { return; }
 
     /**
-     * 1. Check if localStorage has a 'DefaultNamespace' set by the user, if not,
-     * 2. Check if there is a 'default' namespace from backend, if not,
+     * 1. Check if there is a favouriteNamespace from backend, if not,
+     * 2. Set "default" as namesapce, if "default" namespace not present
+     * 2. Check if localStorage has a 'DefaultNamespace' set by the user, if not,
      * 3. Take first one from the list of namespaces from backend.
      **/
 
     let selectedNamespace;
     let defaultNamespace;
 
-    // Check #1
-    if (!selectedNamespace) {
-      defaultNamespace = localStorage.getItem('DefaultNamespace');
-      let defaultNsFromBackend = list.filter(ns => ns.name === defaultNamespace);
-      if (defaultNsFromBackend.length) {
-        selectedNamespace = defaultNsFromBackend[0];
-      }
-    }
-    // Check #2
-    if (!selectedNamespace) {
-      selectedNamespace = this.findNamespace(list, 'default');
-    }
-    // Check #3
-    if (!selectedNamespace) {
-      selectedNamespace = list[0].name;
-    } else {
-      selectedNamespace = selectedNamespace.name;
-    }
+    MyUserStoreApi.get()
+    .subscribe((res) => {
+      const prop = objectQuery(res, 'property', 'favouriteNamespace');
+      const namespace = isEmpty(prop) ? 'default' : prop;
+      const isNamespaceExist = find(list, { name: namespace }) !== undefined;
 
-    localStorage.setItem('DefaultNamespace', selectedNamespace);
-    this.setState({selectedNamespace});
+      if (!isEmpty(prop) && !isNamespaceExist) {
+        MyUserStoreApi.post(null, { favouriteNamespace: '' });
+      }
+      // Check #1
+      if (!selectedNamespace) {
+        selectedNamespace = this.findNamespace(list,( isNamespaceExist ? namespace : 'default'));
+      }
+
+      // Check #2
+      if (!selectedNamespace) {
+        defaultNamespace = localStorage.getItem('DefaultNamespace');
+        let defaultNsFromBackend = list.filter(ns => ns.name === defaultNamespace);
+        if (defaultNsFromBackend.length) {
+          selectedNamespace = defaultNsFromBackend[0];
+        }
+      }
+      // Check #3
+      if (!selectedNamespace) {
+        selectedNamespace = list[0].name;
+      } else {
+        selectedNamespace = selectedNamespace.name;
+      }
+      localStorage.setItem('DefaultNamespace', selectedNamespace);
+      this.setState({selectedNamespace});
+    });
   }
 
   render() {
