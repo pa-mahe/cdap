@@ -78,8 +78,12 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 public class FileSecureStore implements SecureStore, SecureStoreManager {
   private static final Logger LOG = LoggerFactory.getLogger(FileSecureStore.class);
   private static final String SCHEME_NAME = "jceks";
-  /** Separator between the namespace name and the key name */
-  private static final String NAME_SEPARATOR = ":";
+
+  /**
+   * Separator between the namespace name and the key name
+   * Changing this to '-' from ':' as kms secure store does not support ':' in key
+   * */
+  private static final String NAME_SEPARATOR = "-";
 
   private final NamespaceQueryAdmin namespaceQueryAdmin;
   private final char[] password;
@@ -263,16 +267,18 @@ public class FileSecureStore implements SecureStore, SecureStoreManager {
   /**
    * Returns the metadata for the element identified by the given name.
    * The name must be of the format namespace + NAME_SEPARATOR + key name.
-   * @param keyName Name of the element
+   * @param keyName Name of the element (NAME_SEPARATOR not allowed in keyName)
    * @return An object representing the metadata associated with the element
    * @throws NotFoundException If the key was not found in the store.
    * @throws IOException If there was a problem in getting the key from the store
    */
   private SecureStoreMetadata getSecureStoreMetadata(String keyName) throws Exception {
     String[] namespaceAndName = keyName.split(NAME_SEPARATOR);
-    Preconditions.checkArgument(namespaceAndName.length == 2);
-    String namespace = namespaceAndName[0];
-    String name = namespaceAndName[1];
+    Preconditions.checkArgument(namespaceAndName.length > 2);
+    String name = namespaceAndName[namespaceAndName.length - 1];
+    // remove NAME_SEPARATOR<name> and you will get namespace.
+    String namespace = keyName.substring(0, keyName.length() - name.length() - 1);
+
     readLock.lock();
     try {
       if (!keyStore.containsAlias(keyName)) {
