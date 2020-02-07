@@ -20,9 +20,11 @@ $tab_border_bottom_color: #cccccc;
 $tab_font_color: #999999;
 
 .dataprep-content-wrapper {
+  // min-width: 1410px;
   height: 100%;
   > .row {
     height: 100%;
+    display: flex;
     [class*="col-"] {
       padding: 0;
       height: 100%;
