@@ -84,6 +84,17 @@ $toggle-btn-disabled-bg-color: #cccccc;
 
     .dataprep-main {
       height: 100%;
+      display: flex;
+      overflow-x: auto;
+      > .row {
+        margin: 0;
+        height: 100%;
+      }
+    }
+
+    .dataprep-main-content {
+      height: 100%;
+      width: calc(100% - 550px);
       > .row {
         margin: 0;
         height: 100%;
