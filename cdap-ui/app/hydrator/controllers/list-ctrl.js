@@ -384,6 +384,7 @@ angular.module(PKG.name + '.feature.hydrator')
 
     vm.pipeNameSearchChangeHandler = () => {
       setTimeout(() => vm.updateSelectAllStatus());
+      vm.fetchRunsCount();
     };
 
     vm.selectDeselectAll = () => {
