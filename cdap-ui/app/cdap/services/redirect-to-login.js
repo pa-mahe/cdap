@@ -14,7 +14,7 @@
  * the License.
  */
 
-import cookie from 'react-cookie';
+ import cookie from 'react-cookie';
 export default function RedirectToLogin(data) {
   let {statusCode} = data;
   let {url} = data.resource || {};

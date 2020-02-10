@@ -54,6 +54,7 @@ import OverlayFocus from 'components/OverlayFocus';
 import {Theme} from 'services/ThemeHelper';
 import AuthRefresher from 'components/AuthRefresher';
 import { getClassNameForHeaderFooter } from 'components/FeatureUI/util';
+import keycloakService from '../cdap/services/CDAPKeycloakService';
 
 const SampleTSXComponent = Loadable({
   loader: () => import (/* webpackChunkName: "SampleTSXComponent" */ 'components/SampleTSXComponent'),
@@ -87,21 +88,27 @@ class CDAP extends Component {
         }
       });
     }
-    // Initialize KeyCloak if not present
-    fetch("/keycloak-enable").then((response) => {
-      if (response.status >= 200 && response.status < 300) {
-        return response.json();
-      } else {
-        return Promise.reject();
+    // check keycloak enablement if true then Initialize KeyCloak if not present
+    let keycloakEnable = keycloakService.keycloakEnable();
+    keycloakEnable.then(
+      (response) => {
+        let isEnable = response ? response.enable : false;
+        if (isEnable) {
+          let keycloakInstance = keycloakService.keycloakInstance();
+          keycloakInstance.then(
+            (instance) => {
+              console.log('created keycloak', instance);
+            },
+            (error) => {
+              console.log(`ERROR -> ${error.message}`);
+            }
+          );
+        }
+      },
+      (error) => {
+        console.log(`ERROR -> ${error.message}`);
       }
-    })
-    .then((resp) => {
-      var isEnable = resp ? resp.enable : false;
-      if(isEnable && !window.keycloakInstance) {
-        StatusFactory.initKeyCloak();
-      }
-    });
-
+    );
 
     StatusFactory.startPollingForBackendStatus();
     this.eventEmitter.on(globalEvents.NONAMESPACE, () => {
