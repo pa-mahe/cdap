@@ -61,10 +61,13 @@ export default class Datasource {
 
         // TODO RETRY CALL SHOUBD FOR KYCLOAK ENABLE
          let retryCount = this.bindings[hash].count;
-          if (data.statusCode === 401 && retryCount < 2) { // && (req.url === "http://192.168.154.194:11015/v3/system/services" || req.url === "http://192.168.154.194:11015/v3/namespaces")
-            isTokenInvalid = true;
+          if (data.statusCode === 401 ) {
+            if(retryCount < 2) {
+              isTokenInvalid = true;
+            } else {
+              RedirectToLogin({statusCode: 401});
+            }
           } else {
-            RedirectToLogin({statusCode: 401});
             this.bindings[hash].rx.error({
               statusCode: data.statusCode,
               response: data.response || data.body || data.error
