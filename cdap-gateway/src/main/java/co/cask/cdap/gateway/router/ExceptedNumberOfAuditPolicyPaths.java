@@ -21,5 +21,9 @@ package co.cask.cdap.gateway.router;
  * Expected number of paths annotated with {@link co.cask.cdap.common.security.AuditPolicy}
  */
 public final class ExceptedNumberOfAuditPolicyPaths {
-  public static final int EXPECTED_PATH_NUMBER = 86;
+
+
+  //Increase the count as we added a new API under the code RAFD-3810
+  //for the new favourite namespace per user.
+  public static final int EXPECTED_PATH_NUMBER = 87;
 }
