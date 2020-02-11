@@ -60,8 +60,9 @@ export default class Datasource {
           */
 
         // TODO RETRY CALL SHOUBD FOR KYCLOAK ENABLE
+        let keycloakEnable = window.keycloakEnable != undefined ? window.keycloakEnable : false ;
          let retryCount = this.bindings[hash].count;
-          if (data.statusCode === 401 ) {
+          if ( keycloakEnable && data.statusCode === 401 ) {
             if(retryCount < 2) {
               isTokenInvalid = true;
             } else {
