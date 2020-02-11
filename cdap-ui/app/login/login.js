@@ -148,6 +148,7 @@ class Login extends Component {
       keycloakEnable.then(
         (response) => {
           let isEnable = response ? response.enable : false;
+          window['keycloakEnable'] = isEnable;
           this.setState({ keycloakEnable: isEnable });
           if (isEnable) {
             let keycloakInstance = keycloakService.keycloakInstance(true);

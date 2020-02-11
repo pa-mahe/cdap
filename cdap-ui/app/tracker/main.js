@@ -251,6 +251,7 @@ angular
     keycloakEnable.then(
       (response) => {
         let isEnable = response ? response.enable : false;
+        window['keycloakEnable'] = isEnable;
         if (isEnable) {
           let keycloakInstance = window.CaskCommon.CDAPKeycloakService.keycloakInstance();
           keycloakInstance.then(

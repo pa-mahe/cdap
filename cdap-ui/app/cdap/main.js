@@ -93,6 +93,7 @@ class CDAP extends Component {
     keycloakEnable.then(
       (response) => {
         let isEnable = response ? response.enable : false;
+        window['keycloakEnable'] = isEnable;
         if (isEnable) {
           let keycloakInstance = keycloakService.keycloakInstance();
           keycloakInstance.then(
