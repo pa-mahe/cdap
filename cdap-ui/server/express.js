@@ -573,7 +573,6 @@ function makeApp(authAddress, cdapConfig, uiSettings) {
       cdapConfig['ssl.external.enabled'] === 'true' ? cdapConfig['security.auth.server.ssl.bind.port'] : cdapConfig['security.auth.server.bind.port'],
       '/keycloakToken'
     ].join('');
-    log.info('AUTH ->' + keycloakURL);
     var options = {
       url: keycloakURL,
       headers: {
