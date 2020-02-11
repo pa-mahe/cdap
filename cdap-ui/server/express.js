@@ -247,32 +247,6 @@ function makeApp(authAddress, cdapConfig, uiSettings) {
     res.json(config);
   });
 
-  app.get('/keycloak-enable', function (req, res) {
-    res.json({enable: cdapConfig['keyclock.enable']});
-  });
-
-  app.get('/keycloak-config', function (req, res) {
-
-    var keycloakAuthURL = [
-      cdapConfig['ssl.external.enabled'] === 'true' ? 'https://' : 'http://',
-      cdapConfig['router.server.address'],
-      ':',
-      '8180',
-      cdapConfig['keyclock.server.port'] ,
-      '/auth'
-    ].join('');
-    var config = {
-      'realm': cdapConfig['keyclock.realm'],
-      'url': keycloakAuthURL,
-      'clientId': cdapConfig['keyclock.clientId'],
-      'credentials': {
-      'secret': cdapConfig['keyclock.secret.key']
-      }
-    };
-    res.json(config);
-  });
-
-
   app.get('/ui-config.js', function (req, res) {
     var path = __dirname + '/config/cdap-ui-config.json';
 
