@@ -59,11 +59,10 @@ export default class Datasource {
             the UI and everything loads.
           */
 
-        // TODO RETRY CALL SHOUBD FOR KYCLOAK ENABLE
         let keycloakEnable = window.keycloakEnable != undefined ? window.keycloakEnable : false ;
          let retryCount = this.bindings[hash].count;
-          if ( keycloakEnable && data.statusCode === 401 ) {
-            if(retryCount < 2) {
+          if (data.statusCode === 401 ) {
+            if(keycloakEnable && retryCount < 2) {
               isTokenInvalid = true;
             } else {
               RedirectToLogin({statusCode: 401});
