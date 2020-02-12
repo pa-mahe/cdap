@@ -413,6 +413,7 @@ angular.module(PKG.name + '.feature.hydrator')
         draftList: [],
         pipelineList: [],
         isSelectionEmpty: true,
+        totalSelectedPipeline: 0,
       };
       angular.forEach(vm.pipelineList, function (app) {
         if (app.selected) {
@@ -429,6 +430,7 @@ angular.module(PKG.name + '.feature.hydrator')
         pipelines.isSelectionEmpty = false;
       }
 
+      pipelines.totalSelectedPipeline = pipelines.draftList.length + pipelines.pipelineList.length;
       return pipelines;
     };
 

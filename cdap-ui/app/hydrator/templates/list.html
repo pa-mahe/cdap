@@ -87,10 +87,14 @@
 
       <!-- export pipeline icon -->
       <i ng-disabled="ListController.isPipelineActionsDisable && ListController.isPipelineDownloadProgress"
-          ng-click="ListController.exportPipelines()"
           title="Export" class="fa fa-download export-btn"
           aria-hidden="true"
-          ng-class="{'disabled': ListController.isPipelineActionsDisable || ListController.isPipelineDownloadProgress}"></i>
+          ng-class="{'disabled': ListController.isPipelineActionsDisable || ListController.isPipelineDownloadProgress}"
+
+          ng-click="caskConfirm(); $event.stopPropagation();"
+          cask-confirmable="ListController.exportPipelines()"
+          confirmable-modal-class="hydrator-modal center"
+          data-confirmable-content="Are you sure you want to export '<strong>{{ ListController.selectedPipeline().totalSelectedPipeline }}</strong>' pipelines?"></i>
 
       <!-- delete pipeline icons -->
       <i ng-disabled="ListController.isPipelineActionsDisable"
