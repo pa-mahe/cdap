@@ -306,9 +306,6 @@ function parse1Point0Spec(themeJSON: IOnePoint0SpecJSON): IThemeObj {
       if ('data-prep' in contentJson['feature-names']) {
         featureNames.dataPrep = objectQuery(contentJson, 'feature-names', 'data-prep');
       }
-      if ('dataprep-insights' in contentJson['feature-names']) {
-        featureNames.dataPrep = objectQuery(contentJson, 'feature-names', 'dataprep-insights');
-      }
       if ('feature-engineering' in contentJson['feature-names']) {
         featureNames.featureEngineering = objectQuery(contentJson, 'feature-names', 'feature-engineering');
       }
