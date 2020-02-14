@@ -36,6 +36,7 @@ interface IJsonFeatureNames {
   "pipelines"?: string;
   "reports"?: string;
   "rules-engine"?: string;
+  "dataprep-insights"?: string;
 }
 
 interface IOnePoint0SpecJSON extends IThemeJSON {
@@ -85,7 +86,8 @@ interface IOnePoint0SpecJSON extends IThemeJSON {
     "add-namespace"?: boolean;
     "enable-jio"?: boolean,
     "batch-pipeline-connection"?: string[],
-    "realtime-pipeline-connection"?: string[]
+    "realtime-pipeline-connection"?: string[],
+    "dataprep-insights"?: boolean
   };
 }
 
@@ -180,7 +182,7 @@ interface IThemeObj {
   isCustomerJIO?: boolean;
   batchPipelineConnection?: string[];
   realtimePipelineConnection?: string[];
-
+  showDataprepInsight?: boolean;
 }
 
 function getTheme(): IThemeObj {
@@ -305,6 +307,9 @@ function parse1Point0Spec(themeJSON: IOnePoint0SpecJSON): IThemeObj {
       if ('data-prep' in contentJson['feature-names']) {
         featureNames.dataPrep = objectQuery(contentJson, 'feature-names', 'data-prep');
       }
+      if ('dataprep-insights' in contentJson['feature-names']) {
+        featureNames.dataPrep = objectQuery(contentJson, 'feature-names', 'dataprep-insights');
+      }
       if ('feature-engineering' in contentJson['feature-names']) {
         featureNames.featureEngineering = objectQuery(contentJson, 'feature-names', 'feature-engineering');
       }
@@ -349,6 +354,7 @@ function parse1Point0Spec(themeJSON: IOnePoint0SpecJSON): IThemeObj {
       showAddNamespace: true,
       showAboutProductModal: true,
       isCustomerJIO: false,
+      showDataprepInsight: true,
       batchPipelineConnection: [],
       realtimePipelineConnection: [],
     };
@@ -363,6 +369,9 @@ function parse1Point0Spec(themeJSON: IOnePoint0SpecJSON): IThemeObj {
     }
     if ('data-prep' in featuresJson && isBoolean(featuresJson['data-prep'])) {
       features.showDataPrep = featuresJson['data-prep'];
+    }
+    if ('dataprep-insights' in featuresJson && isBoolean(featuresJson['dataprep-insights'])) {
+      features.showDataprepInsight = featuresJson['dataprep-insights'];
     }
     if ('feature-engineering' in featuresJson && isBoolean(featuresJson['feature-engineering'])) {
       features.showFeatureEngineering = featuresJson['feature-engineering'];
