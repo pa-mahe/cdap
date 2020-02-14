@@ -274,7 +274,7 @@ public class FileSecureStore implements SecureStore, SecureStoreManager {
    */
   private SecureStoreMetadata getSecureStoreMetadata(String keyName) throws Exception {
     String[] namespaceAndName = keyName.split(NAME_SEPARATOR);
-    Preconditions.checkArgument(namespaceAndName.length > 2);
+    Preconditions.checkArgument(namespaceAndName.length > 1);
     String name = namespaceAndName[namespaceAndName.length - 1];
     // remove NAME_SEPARATOR<name> and you will get namespace.
     String namespace = keyName.substring(0, keyName.length() - name.length() - 1);
