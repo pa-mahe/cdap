@@ -38,7 +38,6 @@
     "add-namespace": true,
     "enable-jio": true,
     "batch-pipeline-connection":["upload","file","database","table","s3","gcs","bigquery","spanner","adls","hiveserver2"],
-    "realtime-pipeline-connection":["upload","file","database","table","s3","gcs","bigquery","spanner","adls","kafka"],
-    "dataprep-insights": false
+    "realtime-pipeline-connection":["upload","file","database","table","s3","gcs","bigquery","spanner","adls","kafka"]
   }
 }
