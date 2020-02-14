@@ -36,7 +36,6 @@ interface IJsonFeatureNames {
   "pipelines"?: string;
   "reports"?: string;
   "rules-engine"?: string;
-  "dataprep-insights"?: string;
 }
 
 interface IOnePoint0SpecJSON extends IThemeJSON {
