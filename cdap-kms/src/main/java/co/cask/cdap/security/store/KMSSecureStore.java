@@ -59,8 +59,11 @@ import java.util.Map;
 @SuppressWarnings("unused")
 public class KMSSecureStore implements SecureStore, SecureStoreManager, DelegationTokensUpdater {
   private static final Logger LOG = LoggerFactory.getLogger(KMSSecureStore.class);
-  /** Separator between the namespace name and the key name */
-  private static final String NAME_SEPARATOR = ":";
+  /**
+   * Separator between the namespace name and the key name
+   * Changing this to '-' from ':' as kms secure store does not support ':' in key
+   * */
+  private static final String NAME_SEPARATOR = "-";
   /**
    * Hadoop KeyProvider interface. This is used to interact with KMS.
    */
