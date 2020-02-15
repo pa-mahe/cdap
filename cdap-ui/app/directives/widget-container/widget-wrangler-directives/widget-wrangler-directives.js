@@ -26,6 +26,8 @@
       controller: function($scope, myHelpers, $uibModal) {
         $scope.rows = myHelpers.objectQuery($scope, 'config', 'widget-attributes', 'rows');
         $scope.placeholder = myHelpers.objectQuery($scope, 'config', 'widget-attributes', 'rows') || '';
+        $scope.hideWrangler = !window.CaskCommon.ThemeHelper.Theme.showDataPrep;
+
 
         $scope.openWranglerModal = function() {
           $uibModal.open({
