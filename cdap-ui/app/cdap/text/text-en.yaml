@@ -2562,6 +2562,24 @@ features:
       fieldName: Field name
       symbolName: Symbol name
   SecuredKeyModal:
+    AddSecuredKeyModal:
+      Buttons:
+        Save: Save
+        Cancel: Cancel
+      data: Data
+      defaultTestErrorMessage: Error in creating secure key
+      defaultSuccessMessage: Secured Key created succcessfully
+      description: Description
+      modalHeader: Add Secured Key
+      name: Secured Key Name
+      MessageLabels:
+        danger: Secured Key creation failed
+        success: Secured key created succcessfully
+      securedKeyProperties: Properties
+      Placeholders:
+        data: Enter Secured Key Data
+        description: Enter Secured Key description
+        name: Enter Secured Key name
     modalHeader: Secured Key
 
   ServiceEnableUtility:

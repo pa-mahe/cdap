@@ -17,7 +17,8 @@
 import PropTypes from 'prop-types';
 
 import React, { Component } from 'react';
-import {Modal, ModalHeader, ModalBody} from 'reactstrap';
+import { Modal, ModalHeader, ModalBody } from 'reactstrap';
+import AddSecuredKeyModal from 'components/Header/ProductDropdown/SecuredKeyModal/AddSecuredKeyModal';
 import T from 'i18n-react';
 import 'whatwg-fetch';
 
@@ -28,10 +29,12 @@ export default class SecuredKeyModal extends Component {
     super(props);
 
     this.state = {
+      addSecuredKeyModalOpen:false,
       error: null
     };
 
     this.toggleModal = this.toggleModal.bind(this);
+    this.toggelAddSecuredKeyModal = this.toggelAddSecuredKeyModal.bind(this);
   }
 
   toggleModal() {
@@ -39,6 +42,12 @@ export default class SecuredKeyModal extends Component {
       error: null
     });
     this.props.toggle();
+  }
+
+  toggelAddSecuredKeyModal() {
+    this.setState({
+      addSecuredKeyModalOpen: !this.state.addSecuredKeyModalOpen
+    });
   }
 
   render() {
@@ -62,7 +71,14 @@ export default class SecuredKeyModal extends Component {
           </div>
         </ModalHeader>
         <ModalBody>
-          <div>secured Key modal</div>
+          <button className="btn"
+            onClick={this.toggelAddSecuredKeyModal.bind(this)}>
+            Add Secured Key
+          </button>
+          <AddSecuredKeyModal
+            isOpen={this.state.addSecuredKeyModalOpen}
+            toggle={this.toggelAddSecuredKeyModal}
+          />
         </ModalBody>
       </Modal>
     );
