@@ -26,6 +26,7 @@ import cookie from 'react-cookie';
 import VersionStore from 'services/VersionStore';
 import AboutPageModal from 'components/Header/ProductDropdown/AboutPageModal';
 import AccessTokenModal from 'components/Header/ProductDropdown/AccessTokenModal';
+import SecuredKeyModal from 'components/Header/ProductDropdown/SecuredKeyModal';
 import IconSVG from 'components/IconSVG';
 import getLastSelectedNamespace from 'services/get-last-selected-namespace';
 import T from 'i18n-react';
@@ -42,6 +43,7 @@ export default class ProductDropdown extends Component {
       toggleDropdown: false,
       aboutPageOpen: false,
       accessTokenModalOpen: false,
+      securedKeyModalOpen: false,
       username: NamespaceStore.getState().username,
       currentNamespace: null
     };
@@ -49,6 +51,7 @@ export default class ProductDropdown extends Component {
     this.toggleCdapMenuDropdown = this.toggleCdapMenuDropdown.bind(this);
     this.toggleAboutPage = this.toggleAboutPage.bind(this);
     this.toggleAccessTokenModal = this.toggleAccessTokenModal.bind(this);
+    this.toggleSecuredKeyModal = this.toggleSecuredKeyModal.bind(this);
   }
 
   componentWillMount() {
@@ -77,6 +80,12 @@ export default class ProductDropdown extends Component {
   toggleAccessTokenModal() {
     this.setState({
       accessTokenModalOpen: !this.state.accessTokenModalOpen
+    });
+  }
+
+  toggleSecuredKeyModal() {
+    this.setState({
+      securedKeyModalOpen: !this.state.securedKeyModalOpen
     });
   }
 
@@ -177,6 +186,11 @@ export default class ProductDropdown extends Component {
                   </a>
               }
             </DropdownItem>
+            <DropdownItem
+              tag="li"
+              onClick={this.toggleSecuredKeyModal}>
+              <a>{T.translate('features.Navbar.ProductDropdown.securedKey')}</a>
+            </DropdownItem>
             {/* to enable documentation, uncomment below code  */}
             {/*
               <DropdownItem tag="li">
@@ -203,6 +217,11 @@ export default class ProductDropdown extends Component {
               :
                 null
             }
+            <SecuredKeyModal
+              cdapVersion={cdapVersion}
+              isOpen={this.state.securedKeyModalOpen}
+              toggle={this.toggleSecuredKeyModal}
+            />
           </CustomDropdownMenu>
         </Dropdown>
         <If condition={Theme.showAboutProductModal === true}>

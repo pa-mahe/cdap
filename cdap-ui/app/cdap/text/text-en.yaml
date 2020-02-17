@@ -1827,6 +1827,7 @@ features:
       dataPrep: Data Preparation
       documentationLabel: Documentation
       logout: Logout
+      securedKey: Secured Key
       modes:
         cloudSandbox: Cloud Sandbox
         distributed: Distributed
@@ -2560,6 +2561,9 @@ features:
     Labels:
       fieldName: Field name
       symbolName: Symbol name
+  SecuredKeyModal:
+    modalHeader: Secured Key
+
   ServiceEnableUtility:
     serviceNotFound: Cannot find {artifactName} artifact
   SpotlightSearch:
