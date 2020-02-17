@@ -26,12 +26,11 @@ import cloneDeep from 'lodash/cloneDeep';
 import uuidV4 from 'uuid/v4';
 import NamespaceStore from 'services/NamespaceStore';
 import CardActionFeedback, { CARD_ACTION_TYPES } from 'components/CardActionFeedback';
-import cookie from 'react-cookie';
-import isNil from 'lodash/isNil';
 import Datasource from 'services/datasource';
 import {objectQuery} from 'services/helpers';
 
 import 'whatwg-fetch';
+import { MySecureKeyApi } from 'api/securekey';
 
 require('./AddSecuredKeyModal.scss');
 
@@ -180,49 +179,31 @@ export default class AddSecuredKeyModal extends Component {
         type: null
       }
     });
-    let headers = {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
+
+    let requestBody = {
+      description: this.state.description,
+      data: this.state.data,
+      properties: this.getKeyValObject()
     };
 
-    if (window.CDAP_CONFIG.securityEnabled) {
-      let token = cookie.load('CDAP_Auth_Token');
-      if (!isNil(token)) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-    }
-
-    let reqObj = {
-      _cdapPath: `/namespaces/${namespace}/securekeys/${this.state.name}`,
-      method: 'PUT',
-      body: {
-        description: this.state.description,
-        data: this.state.data,
-        properties: this.getKeyValObject()
-      },
-      headers,
-    };
-    this.dataSrc.request(reqObj)
-      .subscribe(
-        (response) => {
-          let message = objectQuery(response, 'response', 'message') || objectQuery(response, 'response') || T.translate(`${PREFIX}.defaultSuccessMessage`);
+    MySecureKeyApi.create({namespace, name:this.state.name}, requestBody)
+      .subscribe((response) => {
+        let message = objectQuery(response, 'response', 'message') || objectQuery(response, 'response') || T.translate(`${PREFIX}.defaultSuccessMessage`);
           this.setState({
             result: {
               type: CARD_ACTION_TYPES.SUCCESS,
               message: message
             }
           });
-        },
-        (err) => {
-          let errorMessage = objectQuery(err, 'response', 'message') || objectQuery(err, 'response') || T.translate(`${PREFIX}.defaultTestErrorMessage`);
+      }, (err) => {
+        let errorMessage = objectQuery(err, 'response', 'message') || objectQuery(err, 'response') || T.translate(`${PREFIX}.defaultTestErrorMessage`);
           this.setState({
             result: {
               type: CARD_ACTION_TYPES.DANGER,
               message: errorMessage
             }
           });
-        }
-      );
+        });
   }
 
   renderActionButton() {

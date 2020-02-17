@@ -21,5 +21,6 @@ const dataSrc = DataSourceConfigurer.getInstance();
 const basepath = '/namespaces/:namespace/securekeys';
 
 export const MySecureKeyApi = {
-  list: apiCreator(dataSrc, 'GET', 'REQUEST', basepath)
+  list: apiCreator(dataSrc, 'GET', 'REQUEST', basepath),
+  create: apiCreator(dataSrc, 'PUT', 'REQUEST', `${basepath}/:name`)
 };
