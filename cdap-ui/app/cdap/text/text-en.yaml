@@ -2581,6 +2581,8 @@ features:
         description: Enter Secured Key description
         name: Enter Secured Key name
     modalHeader: Secured Key
+    searchPlaceholder: Search by Secured Key name
+    addSecuredKeyButtonLabel: + Add Secured Key
 
   ServiceEnableUtility:
     serviceNotFound: Cannot find {artifactName} artifact

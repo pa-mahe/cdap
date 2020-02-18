@@ -19,10 +19,12 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { Modal, ModalHeader, ModalBody } from 'reactstrap';
 import AddSecuredKeyModal from 'components/Header/ProductDropdown/SecuredKeyModal/AddSecuredKeyModal';
+import SecuredKeyInterface from 'components/SecuredKeyInterface';
 import T from 'i18n-react';
 import 'whatwg-fetch';
 
 require('./SecuredKeyModal.scss');
+const PREFIX = 'features.SecuredKeyModal';
 
 export default class SecuredKeyModal extends Component {
   constructor(props) {
@@ -30,7 +32,9 @@ export default class SecuredKeyModal extends Component {
 
     this.state = {
       addSecuredKeyModalOpen:false,
-      error: null
+      error: null,
+      search: '',
+      searchFocus: true,
     };
 
     this.toggleModal = this.toggleModal.bind(this);
@@ -50,18 +54,21 @@ export default class SecuredKeyModal extends Component {
     });
   }
 
+  handleSearch = (e) => {
+    this.setState({search: e.target.value});
+  }
+
   render() {
     return (
       <Modal
         isOpen={this.props.isOpen}
         toggle={this.toggleModal}
-        size="md"
         className="secured-key-modal cdap-modal"
         backdrop='static'
       >
         <ModalHeader>
           <span>
-            {T.translate('features.SecuredKeyModal.modalHeader')}
+            {T.translate(`${PREFIX}.modalHeader`)}
           </span>
           <div
             className="close-section float-xs-right"
@@ -71,10 +78,26 @@ export default class SecuredKeyModal extends Component {
           </div>
         </ModalHeader>
         <ModalBody>
-          <button className="btn"
-            onClick={this.toggelAddSecuredKeyModal.bind(this)}>
-            Add Secured Key
-          </button>
+          <div className="action-container">
+            <div className="search-container">
+              <input
+                type="text"
+                className="form-control"
+                placeholder={T.translate(`${PREFIX}.searchPlaceholder`)}
+                value={this.state.search}
+                onChange={this.handleSearch}
+                autoFocus={this.state.searchFocus}
+              />
+            </div>
+            <button className="btn btn-primary"
+              onClick={this.toggelAddSecuredKeyModal.bind(this)}>
+              {T.translate(`${PREFIX}.addSecuredKeyButtonLabel`)}
+            </button>
+          </div>
+          <div className="secured-key-grid">
+            <SecuredKeyInterface />
+          </div>
+
           <AddSecuredKeyModal
             isOpen={this.state.addSecuredKeyModalOpen}
             toggle={this.toggelAddSecuredKeyModal}

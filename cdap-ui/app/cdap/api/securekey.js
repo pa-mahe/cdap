@@ -22,5 +22,6 @@ const basepath = '/namespaces/:namespace/securekeys';
 
 export const MySecureKeyApi = {
   list: apiCreator(dataSrc, 'GET', 'REQUEST', basepath),
-  create: apiCreator(dataSrc, 'PUT', 'REQUEST', `${basepath}/:name`)
+  create: apiCreator(dataSrc, 'PUT', 'REQUEST', `${basepath}/:name`),
+  metadata: apiCreator(dataSrc, 'GET', 'REQUEST', `${basepath}/:id/metadata`)
 };

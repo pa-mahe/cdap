@@ -17,10 +17,16 @@
 @import '../../../../styles/variables.scss';
 
 .secured-key-modal {
-  &.modal-dialog { margin-top: 100px; }
+  &.modal-dialog {
+    width: 95vw;
+    max-width: 95vw;
+    height: 90vh;
+    margin-top: 5vh !important;
+  }
 
   .modal-content {
-    width: 500px;
+    width: inherit;
+    height: inherit;
 
     .modal-header {
       padding: 0;
@@ -41,6 +47,23 @@
           span { padding: 0 10px; }
           cursor: pointer;
         }
+      }
+    }
+
+    .modal-body {
+      padding: 0px !important;
+      .action-container {
+        display: flex;
+        height: 50px;
+        padding: 10px;
+        box-shadow: 0 7px 7px rgba(0, 0, 0, 0.1), 0 10px 59px rgba(0, 0, 0, 0.25);
+        .search-container {
+          width: 30%;
+          margin-right: 10px;
+        }
+      }
+      .secured-key-grid{
+        height: calc(100% - 70px);
       }
     }
   }
