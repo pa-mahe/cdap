@@ -28,6 +28,7 @@ require('./SecuredKeyGrid.scss');
 class SecuredKeyGrid extends React.Component {
   gridApi;
   gridColumnApi;
+
   constructor(props) {
     super(props);
     this.state = {
@@ -35,7 +36,8 @@ class SecuredKeyGrid extends React.Component {
       frameworkComponents: {
         'gridActionRenderer': GridActionRenderer,
       },
-      context: { componentParent: this }
+      context: { componentParent: this },
+      data: this.prop.data
     };
   }
 
@@ -59,7 +61,6 @@ class SecuredKeyGrid extends React.Component {
     this.gridColumnApi = params.columnApi;
   }
 
-
   render() {
     setTimeout(() => {
       if (this.gridApi) {
@@ -74,7 +75,7 @@ class SecuredKeyGrid extends React.Component {
           columnDefs={this.state.columnDefs}
           context={this.state.context}
           frameworkComponents={this.state.frameworkComponents}
-          rowData={this.props.data}
+          rowData={this.state.data}
           enableFilter={true}
           onGridReady={this.onGridReady}
         >
@@ -82,7 +83,7 @@ class SecuredKeyGrid extends React.Component {
       </div>
     );
   }
-  
+
   onAction(item, type) {
     switch (type) {
       case COPY_TO_CLIPBOARD:

@@ -13,9 +13,7 @@
 * License for the specific language governing permissions and limitations under
 * the License.
 */
-
 @import '../../../../styles/variables.scss';
-
 .secured-key-modal {
   &.modal-dialog {
     width: 95vw;
@@ -62,7 +60,7 @@
           margin-right: 10px;
         }
       }
-      .secured-key-grid{
+      .secured-key-grid {
         height: calc(100% - 70px);
       }
     }

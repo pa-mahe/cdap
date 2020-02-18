@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import SecuredKeyGrid from 'components/SecuredKeyGrid';
 import { getCurrentNamespace } from 'services/NamespaceStore';
 import { MySecureKeyApi } from 'api/securekey';
+import {Observable} from 'rxjs/Observable';
 
 require('./SecuredKeyInterface.scss');
 
@@ -16,13 +17,11 @@ export default class SecuredKeyInterface extends React.Component {
     securedKeys: {},
     securedKeysData: []
   }
-  componentWillMount() {
+  componentDidMount() {
     const namespace = getCurrentNamespace();
     const params = {
       namespace
     };
-
-
 
     MySecureKeyApi.list(params)
       .subscribe((res) => {
@@ -31,21 +30,24 @@ export default class SecuredKeyInterface extends React.Component {
         this.setState({
           securedKeys: keys
         });
-        const promises = [];
+        const observableArr = [];
         keys.forEach(key => {
-          promises.push(new Promise(function (resolve) {
-            MySecureKeyApi.metadata({ namespace, id: key });
-          }));
+          observableArr.push(MySecureKeyApi.metadata({ namespace, id: key }));
         });
-
-        Promise.all(promises).then(function (values) {
-          console.log(values);
+        Observable.forkJoin(
+          observableArr
+        ).subscribe((res) => {
+          this.setState({
+            securedKeysData: res
+          });
+        }, (err) => {
+          console.log(err);
         });
       });
   }
   render() {
     return (
-      <SecuredKeyGrid />
+      <SecuredKeyGrid data={this.state.securedKeysData}/>
     );
   }
 }
