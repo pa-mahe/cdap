@@ -37,7 +37,7 @@ class SecuredKeyGrid extends React.Component {
         'gridActionRenderer': GridActionRenderer,
       },
       context: { componentParent: this },
-      data: this.prop.data
+      data: this.props.data
     };
   }
 
