@@ -1,0 +1,35 @@
+.wrapper {
+    position: fixed;
+    left: 0;
+    top: 0;
+    background-color: rgba(255, 255, 255, 0.95);
+    height: 100vh;
+    width: 100vw;
+    z-index: 1002;
+  }
+
+  .top-panel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: fit-content;
+    padding: 5px 10px;
+    .overlay-title {
+        font-size: 1.55em;
+    }
+    .close {
+        color: black;
+        background: none;
+        border: 0;
+    }
+  }
+  
+  .inner {
+    position: relative;
+    width: 100%;
+    height: calc(100% - 65px);
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+  }
