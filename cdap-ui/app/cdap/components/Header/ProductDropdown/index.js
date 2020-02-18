@@ -33,8 +33,6 @@ import T from 'i18n-react';
 import classnames from 'classnames';
 import If from 'components/If';
 import {Theme} from 'services/ThemeHelper';
-import SecuredKeyInterface from 'components/SecuredKeyInterface';
-import FullScreenOverlay from 'components/FullScreenOverlay';
 
 require('./ProductDropdown.scss');
 
@@ -47,15 +45,13 @@ export default class ProductDropdown extends Component {
       accessTokenModalOpen: false,
       securedKeyModalOpen: false,
       username: NamespaceStore.getState().username,
-      currentNamespace: null,
-      securedKeyOverlayOpen: false,
+      currentNamespace: null
     };
     this.logout = this.logout.bind(this);
     this.toggleCdapMenuDropdown = this.toggleCdapMenuDropdown.bind(this);
     this.toggleAboutPage = this.toggleAboutPage.bind(this);
     this.toggleAccessTokenModal = this.toggleAccessTokenModal.bind(this);
     this.toggleSecuredKeyModal = this.toggleSecuredKeyModal.bind(this);
-    this.toggleSecuredKeyOverlay = this.toggleSecuredKeyOverlay.bind(this);
   }
 
   componentWillMount() {
@@ -93,12 +89,6 @@ export default class ProductDropdown extends Component {
     });
   }
 
-  toggleSecuredKeyOverlay() {
-    this.setState({
-      securedKeyOverlayOpen: !this.state.securedKeyOverlayOpen
-    });
-  }
-
   logout() {
     cookie.remove('show-splash-screen-for-session', {path: '/'});
     RedirectToLogin({statusCode: 401});
@@ -110,12 +100,6 @@ export default class ProductDropdown extends Component {
     e.nativeEvent.stopImmediatePropagation();
     return false;
   }
-
-  renderSecuredKeyOverlay = () => (
-    <FullScreenOverlay handleClose={this.toggleSecuredKeyOverlay} title = "Secured Keys">
-      <SecuredKeyInterface handleClose={this.toggleSecuredKeyOverlay} />
-    </FullScreenOverlay>
-  )
 
   render() {
     let baseCDAPURL = window.getAbsUIUrl();
@@ -204,7 +188,7 @@ export default class ProductDropdown extends Component {
             </DropdownItem>
             <DropdownItem
               tag="li"
-              onClick={this.toggleSecuredKeyOverlay}>
+              onClick={this.toggleSecuredKeyModal}>
               <a>{T.translate('features.Navbar.ProductDropdown.securedKey')}</a>
             </DropdownItem>
             {/* to enable documentation, uncomment below code  */}
@@ -238,9 +222,6 @@ export default class ProductDropdown extends Component {
               isOpen={this.state.securedKeyModalOpen}
               toggle={this.toggleSecuredKeyModal}
             />
-            {
-              this.state.securedKeyOverlayOpen ? this.renderSecuredKeyOverlay(): null
-            }
           </CustomDropdownMenu>
         </Dropdown>
         <If condition={Theme.showAboutProductModal === true}>
