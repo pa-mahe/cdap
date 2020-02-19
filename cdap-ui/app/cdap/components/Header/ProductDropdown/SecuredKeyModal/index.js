@@ -19,7 +19,6 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { Modal, ModalHeader, ModalBody } from 'reactstrap';
 import SecuredKeyInterface from 'components/SecuredKeyInterface';
-import AddSecuredKeyModal from 'components/Header/ProductDropdown/SecuredKeyModal/AddSecuredKeyModal';
 import T from 'i18n-react';
 import 'whatwg-fetch';
 
@@ -61,10 +60,6 @@ export default class SecuredKeyModal extends Component {
         </ModalHeader>
         <ModalBody>
           <SecuredKeyInterface handleClose={this.props.toggle} />
-          <AddSecuredKeyModal
-            isOpen={this.props.addSecuredKeyModalOpen}
-            toggle={this.props.toggelAddSecuredKeyModal}
-          />
         </ModalBody>
       </Modal>
     );
@@ -73,7 +68,5 @@ export default class SecuredKeyModal extends Component {
 
 SecuredKeyModal.propTypes = {
   isOpen: PropTypes.bool,
-  toggle: PropTypes.func,
-  addSecuredKeyModalOpen: PropTypes.bool,
-  toggelAddSecuredKeyModal: PropTypes.bool
+  toggle: PropTypes.func
 };

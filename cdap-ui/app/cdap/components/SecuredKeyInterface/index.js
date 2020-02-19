@@ -20,6 +20,8 @@ import { getCurrentNamespace } from 'services/NamespaceStore';
 import { MySecureKeyApi } from 'api/securekey';
 import { Observable } from 'rxjs/Observable';
 import { copyToClipboard } from 'components/SecuredKeyGrid/utils';
+import AddSecuredKeyModal from 'components/SecuredKeyInterface/AddSecuredKeyModal';
+
 import T from 'i18n-react';
 
 require('./SecuredKeyInterface.scss');
@@ -102,6 +104,19 @@ export default class SecuredKeyInterface extends React.Component {
     }
   }
 
+  renderAddSecuredKeyModal() {
+    if (!this.state.addSecuredKeyModalOpen) {
+      return null;
+    }
+
+    return (
+      <AddSecuredKeyModal
+        isOpen={this.state.addSecuredKeyModalOpen}
+        toggle={this.toggelAddSecuredKeyModal}
+      />
+    );
+  }
+
   render() {
     return (
       <div className="secured-key-interface">
@@ -129,6 +144,8 @@ export default class SecuredKeyInterface extends React.Component {
             searchText={this.props.searchText}
           />
         </div>
+        {this.renderAddSecuredKeyModal()}
+
       </div>
     );
   }
