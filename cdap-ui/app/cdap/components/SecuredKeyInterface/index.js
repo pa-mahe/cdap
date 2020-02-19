@@ -208,7 +208,7 @@ export default class SecuredKeyInterface extends React.Component {
           <SecuredKeyGrid
             data={this.state.securedKeysData}
             onCopyToClipboard={this.onCopyToClipboard.bind(this)}
-            searchText={this.props.searchText}
+            searchText={this.state.searchText}
             onDeleteKey={this.onDeleteKey.bind(this)}
           />
         </div>
