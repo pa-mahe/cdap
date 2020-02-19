@@ -20,8 +20,10 @@ import { getCurrentNamespace } from 'services/NamespaceStore';
 import { MySecureKeyApi } from 'api/securekey';
 import { Observable } from 'rxjs/Observable';
 import { copyToClipboard } from 'components/SecuredKeyGrid/utils';
+import T from 'i18n-react';
 
 require('./SecuredKeyInterface.scss');
+const PREFIX = 'features.SecuredKeyModal';
 
 export default class SecuredKeyInterface extends React.Component {
   static propTypes = {
@@ -31,9 +33,30 @@ export default class SecuredKeyInterface extends React.Component {
 
   state = {
     securedKeys: {},
-    securedKeysData: []
+    securedKeysData: [],
+    addSecuredKeyModalOpen: false,
+    error: null,
+    searchText: '',
+    searchFocus: true,
+  };
+
+  constructor(props) {
+    super(props);
+
+    this.toggelAddSecuredKeyModal = this.toggelAddSecuredKeyModal.bind(this);
   }
+
+  toggelAddSecuredKeyModal() {
+    this.setState({
+      addSecuredKeyModalOpen: !this.state.addSecuredKeyModalOpen
+    });
+  }
+
   componentDidMount() {
+    this.getKeys();
+  }
+
+  getKeys() {
     const namespace = getCurrentNamespace();
     const params = {
       namespace
@@ -62,6 +85,10 @@ export default class SecuredKeyInterface extends React.Component {
       });
   }
 
+  handleSearch = (e) => {
+    this.setState({searchText: e.target.value});
+  }
+
   onCopyToClipboard(item) {
     if (item && item.name) {
       copyToClipboard(item.name);
@@ -69,17 +96,45 @@ export default class SecuredKeyInterface extends React.Component {
     }
   }
 
+  onDeleteKey(item) {
+    if (item && item.name) {
+      console.log(item.name);
+    }
+  }
+
   render() {
     return (
-      <SecuredKeyGrid
-        data={this.state.securedKeysData}
-        onCopyToClipboard={this.onCopyToClipboard.bind(this)}
-        searchText={this.props.searchText}
-      />
+      <div className="secured-key-interface">
+        <div className="action-container">
+          <div className="search-container">
+            <input
+              id="secured-key-search-text"
+              type="text"
+              className="form-control"
+              placeholder={T.translate(`${PREFIX}.searchPlaceholder`)}
+              value={this.state.searchText}
+              onChange={this.handleSearch}
+              autoFocus={this.state.searchFocus}
+            />
+          </div>
+          <button className="btn btn-primary"
+            onClick={this.toggelAddSecuredKeyModal.bind(this)}>
+            {T.translate(`${PREFIX}.addSecuredKeyButtonLabel`)}
+          </button>
+        </div>
+        <div className="secured-key-grid">
+          <SecuredKeyGrid
+            data={this.state.securedKeysData}
+            onCopyToClipboard={this.onCopyToClipboard.bind(this)}
+            searchText={this.props.searchText}
+          />
+        </div>
+      </div>
     );
   }
 }
 
 SecuredKeyInterface.propTypes = {
-  searchText: PropTypes.string
+  searchText: PropTypes.string,
+  getKeys: PropTypes.func,
 };

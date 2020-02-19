@@ -18,8 +18,8 @@ import PropTypes from 'prop-types';
 
 import React, { Component } from 'react';
 import { Modal, ModalHeader, ModalBody } from 'reactstrap';
-import AddSecuredKeyModal from 'components/Header/ProductDropdown/SecuredKeyModal/AddSecuredKeyModal';
 import SecuredKeyInterface from 'components/SecuredKeyInterface';
+import AddSecuredKeyModal from 'components/Header/ProductDropdown/SecuredKeyModal/AddSecuredKeyModal';
 import T from 'i18n-react';
 import 'whatwg-fetch';
 
@@ -30,15 +30,7 @@ export default class SecuredKeyModal extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      addSecuredKeyModalOpen:false,
-      error: null,
-      searchText: '',
-      searchFocus: true,
-    };
-
     this.toggleModal = this.toggleModal.bind(this);
-    this.toggelAddSecuredKeyModal = this.toggelAddSecuredKeyModal.bind(this);
   }
 
   toggleModal() {
@@ -46,16 +38,6 @@ export default class SecuredKeyModal extends Component {
       error: null
     });
     this.props.toggle();
-  }
-
-  toggelAddSecuredKeyModal() {
-    this.setState({
-      addSecuredKeyModalOpen: !this.state.addSecuredKeyModalOpen
-    });
-  }
-
-  handleSearch = (e) => {
-    this.setState({searchText: e.target.value});
   }
 
   render() {
@@ -78,32 +60,10 @@ export default class SecuredKeyModal extends Component {
           </div>
         </ModalHeader>
         <ModalBody>
-          <div className="action-container">
-            <div className="search-container">
-              <input
-                id="secured-key-search-text"
-                type="text"
-                className="form-control"
-                placeholder={T.translate(`${PREFIX}.searchPlaceholder`)}
-                value={this.state.searchText}
-                onChange={this.handleSearch}
-                autoFocus={this.state.searchFocus}
-              />
-            </div>
-            <button className="btn btn-primary"
-              onClick={this.toggelAddSecuredKeyModal.bind(this)}>
-              {T.translate(`${PREFIX}.addSecuredKeyButtonLabel`)}
-            </button>
-          </div>
-          <div className="secured-key-grid">
-            <SecuredKeyInterface
-              handleClose={this.props.toggle}
-              searchText={this.state.searchText}/>
-          </div>
-
+          <SecuredKeyInterface handleClose={this.props.toggle} />
           <AddSecuredKeyModal
-            isOpen={this.state.addSecuredKeyModalOpen}
-            toggle={this.toggelAddSecuredKeyModal}
+            isOpen={this.props.addSecuredKeyModalOpen}
+            toggle={this.props.toggelAddSecuredKeyModal}
           />
         </ModalBody>
       </Modal>
@@ -113,5 +73,7 @@ export default class SecuredKeyModal extends Component {
 
 SecuredKeyModal.propTypes = {
   isOpen: PropTypes.bool,
-  toggle: PropTypes.func
+  toggle: PropTypes.func,
+  addSecuredKeyModalOpen: PropTypes.bool,
+  toggelAddSecuredKeyModal: PropTypes.bool
 };

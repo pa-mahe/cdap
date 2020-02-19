@@ -13,3 +13,23 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+.secured-key-interface {
+  widows: 100%;
+  height: 100%;
+
+  .action-container {
+    display: flex;
+    height: 50px;
+    padding: 10px;
+    box-shadow: 0 7px 7px rgba(0, 0, 0, 0.1), 0 10px 59px rgba(0, 0, 0, 0.25);
+
+    .search-container {
+      width: 30%;
+      margin-right: 10px;
+    }
+  }
+
+  .secured-key-grid {
+    height: calc(100% - 70px);
+  }
+}
