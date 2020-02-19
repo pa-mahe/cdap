@@ -21,6 +21,9 @@ import { MySecureKeyApi } from 'api/securekey';
 import { Observable } from 'rxjs/Observable';
 import { copyToClipboard } from 'components/SecuredKeyGrid/utils';
 import AddSecuredKeyModal from 'components/SecuredKeyInterface/AddSecuredKeyModal';
+import ConfirmationModal from 'components/ConfirmationModal';
+import LoadingSVG from 'components/LoadingSVG';
+import {objectQuery} from 'services/helpers';
 
 import T from 'i18n-react';
 
@@ -40,6 +43,11 @@ export default class SecuredKeyInterface extends React.Component {
     error: null,
     searchText: '',
     searchFocus: true,
+    deleteModalOpen: false,
+    deleteErrMsg: '',
+    extendedDeleteErrMsg: '',
+    selectedItem: null,
+    loading: false,
   };
 
   constructor(props) {
@@ -54,11 +62,18 @@ export default class SecuredKeyInterface extends React.Component {
     });
   }
 
+  toggleDeleteConfirmationModal() {
+    this.setState({
+      deleteModalOpen: !this.state.deleteModalOpen
+    });
+  }
+
   componentDidMount() {
     this.getKeys();
   }
 
   getKeys() {
+    this.setState({ loading: true });
     const namespace = getCurrentNamespace();
     const params = {
       namespace
@@ -79,9 +94,11 @@ export default class SecuredKeyInterface extends React.Component {
           observableArr
         ).subscribe((res) => {
           this.setState({
-            securedKeysData: res
+            securedKeysData: res,
+            loading: false
           });
         }, (err) => {
+          this.setState({ loading: false });
           console.log(err);
         });
       });
@@ -100,8 +117,28 @@ export default class SecuredKeyInterface extends React.Component {
 
   onDeleteKey(item) {
     if (item && item.name) {
-      console.log(item.name);
+      this.setState({ selectedItem: item.name });
+      this.toggleDeleteConfirmationModal();
     }
+  }
+
+  deleteConfirm() {
+    const namespace = getCurrentNamespace();
+
+    this.setState({ loading: true });
+
+    MySecureKeyApi.delete({namespace, id:this.state.selectedItem})
+      .subscribe(() => {
+        this.setState({ loading: false, deleteModalOpen: false });
+        this.getKeys();
+      }, (err) => {
+        this.setState({ loading: false});
+        let errorMessage = objectQuery(err, 'response', 'message') || objectQuery(err, 'response') || T.translate(`${PREFIX}.defaultDeleteErrorMessage`);
+        this.setState({
+          extendedDeleteErrMsg: errorMessage,
+          deleteErrMsg: T.translate(`${PREFIX}.deleteError`)
+        });
+      });
   }
 
   renderAddSecuredKeyModal() {
@@ -117,7 +154,37 @@ export default class SecuredKeyInterface extends React.Component {
     );
   }
 
+
+  renderDeleteConfirmationModal() {
+    if (!this.state.deleteModalOpen) {
+      return null;
+    }
+
+    const confirmationText = T.translate(`${PREFIX}.confirmationText`, {id: this.state.selectedItem});
+
+    return (
+      <ConfirmationModal
+        headerTitle={T.translate(`${PREFIX}.deleteConfirmationHeader`)}
+        toggleModal={this.toggleDeleteConfirmationModal.bind(this, null)}
+        confirmationText={confirmationText}
+        confirmButtonText={T.translate('commons.delete')}
+        confirmFn={this.deleteConfirm.bind(this)}
+        cancelFn={this.toggleDeleteConfirmationModal.bind(this, null)}
+        isOpen={this.state.deleteModalOpen}
+        errorMessage={this.state.deleteErrMsg}
+        extendedMessage={this.state.extendedDeleteErrMsg}
+      />
+    );
+  }
+
   render() {
+    if (this.state.loading) {
+      return (
+        <div className="text-xs-center">
+          <LoadingSVG />
+        </div>
+      );
+    }
     return (
       <div className="secured-key-interface">
         <div className="action-container">
@@ -142,10 +209,11 @@ export default class SecuredKeyInterface extends React.Component {
             data={this.state.securedKeysData}
             onCopyToClipboard={this.onCopyToClipboard.bind(this)}
             searchText={this.props.searchText}
+            onDeleteKey={this.onDeleteKey.bind(this)}
           />
         </div>
         {this.renderAddSecuredKeyModal()}
-
+        {this.renderDeleteConfirmationModal()}
       </div>
     );
   }
@@ -153,5 +221,4 @@ export default class SecuredKeyInterface extends React.Component {
 
 SecuredKeyInterface.propTypes = {
   searchText: PropTypes.string,
-  getKeys: PropTypes.func,
 };

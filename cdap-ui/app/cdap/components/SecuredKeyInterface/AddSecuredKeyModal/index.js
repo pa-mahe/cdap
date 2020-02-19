@@ -197,7 +197,7 @@ export default class AddSecuredKeyModal extends Component {
             }
           });
       }, (err) => {
-        let errorMessage = objectQuery(err, 'response', 'message') || objectQuery(err, 'response') || T.translate(`${PREFIX}.defaultTestErrorMessage`);
+        let errorMessage = objectQuery(err, 'response', 'message') || objectQuery(err, 'response') || T.translate(`${PREFIX}.defaultCreateErrorMessage`);
           this.setState({
             result: {
               type: CARD_ACTION_TYPES.DANGER,

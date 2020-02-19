@@ -2567,7 +2567,7 @@ features:
         Save: Save
         Cancel: Cancel
       data: Data
-      defaultTestErrorMessage: Error in creating secure key
+      defaultCreateErrorMessage: Error in creating secure key
       defaultSuccessMessage: Secured Key created succcessfully
       description: Description
       modalHeader: Add Secured Key
@@ -2583,6 +2583,10 @@ features:
     modalHeader: Secured Key
     searchPlaceholder: Search by Secured Key name
     addSecuredKeyButtonLabel: + Add Secured Key
+    deleteConfirmationHeader: Delete Secured Key
+    confirmationText: "Are you sure you want to delete \"{id}\" property?"
+    deleteError: There was a problem deleting the Secured Key
+    defaultDeleteErrorMessage: Error in deleting Secured key
 
   ServiceEnableUtility:
     serviceNotFound: Cannot find {artifactName} artifact
