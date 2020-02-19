@@ -33,7 +33,7 @@ export default class SecuredKeyModal extends Component {
     this.state = {
       addSecuredKeyModalOpen:false,
       error: null,
-      search: '',
+      searchText: '',
       searchFocus: true,
     };
 
@@ -55,7 +55,7 @@ export default class SecuredKeyModal extends Component {
   }
 
   handleSearch = (e) => {
-    this.setState({search: e.target.value});
+    this.setState({searchText: e.target.value});
   }
 
   render() {
@@ -81,10 +81,11 @@ export default class SecuredKeyModal extends Component {
           <div className="action-container">
             <div className="search-container">
               <input
+                id="secured-key-search-text"
                 type="text"
                 className="form-control"
                 placeholder={T.translate(`${PREFIX}.searchPlaceholder`)}
-                value={this.state.search}
+                value={this.state.searchText}
                 onChange={this.handleSearch}
                 autoFocus={this.state.searchFocus}
               />
@@ -95,7 +96,9 @@ export default class SecuredKeyModal extends Component {
             </button>
           </div>
           <div className="secured-key-grid">
-            <SecuredKeyInterface handleClose = {this.props.toggle}/>
+            <SecuredKeyInterface
+              handleClose={this.props.toggle}
+              searchText={this.state.searchText}/>
           </div>
 
           <AddSecuredKeyModal

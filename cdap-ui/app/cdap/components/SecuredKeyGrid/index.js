@@ -54,10 +54,15 @@ class SecuredKeyGrid extends React.Component {
     }
   }
 
-
   onGridReady = params => {
     this.gridApi = params.api;
     this.gridColumnApi = params.columnApi;
+  }
+
+  componentDidUpdate() {
+    if (this.gridApi) {
+      this.gridApi.setQuickFilter(this.props.searchText);
+    }
   }
 
   render() {
@@ -67,15 +72,13 @@ class SecuredKeyGrid extends React.Component {
       }
     }, 500);
     return (
-      <div
-        className="ag-theme-material grid-container">
+      <div className="ag-theme-balham grid-container">
         <AgGridReact
           suppressMenuHide={true}
           columnDefs={this.state.columnDefs}
           context={this.state.context}
           frameworkComponents={this.state.frameworkComponents}
           rowData={this.props.data}
-          enableFilter={true}
           onGridReady={this.onGridReady}
         >
         </AgGridReact>
@@ -114,13 +117,14 @@ class SecuredKeyGrid extends React.Component {
       this.props.onDeleteKey(item);
     }
   }
-
 }
+
 export default SecuredKeyGrid;
 SecuredKeyGrid.propTypes = {
   isDataLoading: PropTypes.any,
   data: PropTypes.array,
   onCopyToClipboard: PropTypes.func,
   onShowKeyData: PropTypes.func,
-  onDeleteKey: PropTypes.func
+  onDeleteKey: PropTypes.func,
+  searchText: PropTypes.string
 };
