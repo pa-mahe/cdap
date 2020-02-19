@@ -189,22 +189,17 @@ export default class AddSecuredKeyModal extends Component {
 
     MySecureKeyApi.create({namespace, name:this.state.name}, requestBody)
       .subscribe((response) => {
-        let message = objectQuery(response, 'response', 'message') || objectQuery(response, 'response') || T.translate(`${PREFIX}.defaultSuccessMessage`);
-          this.setState({
-            result: {
-              type: CARD_ACTION_TYPES.SUCCESS,
-              message: message
-            }
-          });
+        console.log('Secured Key Created Successfully');
+        this.toggleModal();
       }, (err) => {
         let errorMessage = objectQuery(err, 'response', 'message') || objectQuery(err, 'response') || T.translate(`${PREFIX}.defaultCreateErrorMessage`);
-          this.setState({
-            result: {
-              type: CARD_ACTION_TYPES.DANGER,
-              message: errorMessage
-            }
-          });
+        this.setState({
+          result: {
+            type: CARD_ACTION_TYPES.DANGER,
+            message: errorMessage
+          }
         });
+      });
   }
 
   renderActionButton() {
