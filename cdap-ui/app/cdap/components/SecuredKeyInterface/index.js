@@ -4,6 +4,7 @@ import SecuredKeyGrid from 'components/SecuredKeyGrid';
 import { getCurrentNamespace } from 'services/NamespaceStore';
 import { MySecureKeyApi } from 'api/securekey';
 import {Observable} from 'rxjs/Observable';
+import { copyToClipboard } from 'components/SecuredKeyGrid/utils';
 
 require('./SecuredKeyInterface.scss');
 
@@ -45,9 +46,17 @@ export default class SecuredKeyInterface extends React.Component {
         });
       });
   }
+
+  onCopyToClipboard(item) {
+      if (item && item.name) {
+          copyToClipboard(item.name);
+          this.props.handleClose();
+      }
+  }
+
   render() {
     return (
-      <SecuredKeyGrid data={this.state.securedKeysData}/>
+      <SecuredKeyGrid data={this.state.securedKeysData} onCopyToClipboard = {this.onCopyToClipboard.bind(this)}/>
     );
   }
 }

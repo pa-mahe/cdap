@@ -86,13 +86,13 @@ class SecuredKeyGrid extends React.Component {
   onAction(item, type) {
     switch (type) {
       case COPY_TO_CLIPBOARD:
-        this.onEdit(item);
+        this.onCopyToClipboard(item);
         break;
       case SHOW_KEY_DATA:
-        this.onClone(item);
+        this.onShowKeyData(item);
         break;
       case DELETE_KEY:
-        this.onDelete(item);
+        this.onDeleteKey(item);
         break;
     }
   }

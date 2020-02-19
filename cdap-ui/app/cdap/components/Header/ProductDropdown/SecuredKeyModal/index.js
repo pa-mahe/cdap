@@ -95,7 +95,7 @@ export default class SecuredKeyModal extends Component {
             </button>
           </div>
           <div className="secured-key-grid">
-            <SecuredKeyInterface />
+            <SecuredKeyInterface handleClose = {this.props.toggle}/>
           </div>
 
           <AddSecuredKeyModal
