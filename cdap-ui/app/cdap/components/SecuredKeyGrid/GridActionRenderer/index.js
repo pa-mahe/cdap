@@ -35,7 +35,7 @@ class ActionRenderer extends React.Component {
   render() {
 
     let type = this.props.colDef.cellRendererParams.action;
-    let actionClass = "fa";
+    let actionClass =  "grid-item-action fa";
     if (type == COPY_TO_CLIPBOARD) {
       actionClass += " fa-clipboard";
     } else if (type == SHOW_KEY_DATA) {
