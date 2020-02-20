@@ -31,6 +31,7 @@ import {objectQuery} from 'services/helpers';
 
 import 'whatwg-fetch';
 import { MySecureKeyApi } from 'api/securekey';
+import { KEY_ADDITION_SUCCESS } from '../constants';
 
 require('./AddSecuredKeyModal.scss');
 
@@ -94,7 +95,7 @@ export default class AddSecuredKeyModal extends Component {
     };
   }
 
-  toggleModal() {
+  toggleModal(status) {
     this.setState({
       name: '',
       description: '',
@@ -107,7 +108,7 @@ export default class AddSecuredKeyModal extends Component {
       },
       inputs: this.getValidationState()
     });
-    this.props.toggle();
+    this.props.toggle(status);
   }
 
   handleChange(key, e) {
@@ -190,7 +191,7 @@ export default class AddSecuredKeyModal extends Component {
     MySecureKeyApi.create({namespace, name:this.state.name}, requestBody)
       .subscribe((response) => {
         console.log('Secured Key Created Successfully');
-        this.toggleModal();
+        this.toggleModal(KEY_ADDITION_SUCCESS);
       }, (err) => {
         let errorMessage = objectQuery(err, 'response', 'message') || objectQuery(err, 'response') || T.translate(`${PREFIX}.defaultCreateErrorMessage`);
         this.setState({

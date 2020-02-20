@@ -27,6 +27,8 @@ import LoadingSVG from 'components/LoadingSVG';
 import {objectQuery, isNilOrEmpty} from 'services/helpers';
 
 import T from 'i18n-react';
+import { KEY_ADDITION_SUCCESS } from './constants';
+import SecuredKeyDataModal from './SecuredKeyDataModal';
 
 require('./SecuredKeyInterface.scss');
 const PREFIX = 'features.SecuredKeyModal';
@@ -49,6 +51,9 @@ export default class SecuredKeyInterface extends React.Component {
     extendedDeleteErrMsg: '',
     selectedItem: null,
     loading: false,
+    currentSecuredKeyData: '',
+    currentSecuredKeyName: '',
+    openSecuredKeyDataModal: false,
   };
 
   constructor(props) {
@@ -57,15 +62,25 @@ export default class SecuredKeyInterface extends React.Component {
     this.toggelAddSecuredKeyModal = this.toggelAddSecuredKeyModal.bind(this);
   }
 
-  toggelAddSecuredKeyModal() {
+  toggelAddSecuredKeyModal(status) {
     this.setState({
       addSecuredKeyModalOpen: !this.state.addSecuredKeyModalOpen
     });
+    if (!isNilOrEmpty(status) && status == KEY_ADDITION_SUCCESS) {
+        this.getKeys();
+    }
   }
 
   toggleDeleteConfirmationModal() {
     this.setState({
       deleteModalOpen: !this.state.deleteModalOpen
+    });
+  }
+
+  toggleSecuredKeyDataModal() {
+    this.setState({
+        openSecuredKeyDataModal: !this.state.openSecuredKeyDataModal,
+        currentSecuredKeyData: this.state.openSecuredKeyDataModal?'':this.state.currentSecuredKeyData,
     });
   }
 
@@ -119,6 +134,33 @@ export default class SecuredKeyInterface extends React.Component {
     if (item && item.name) {
       copyToClipboard(item.name);
       this.props.handleClose();
+    }
+  }
+
+  fetchSecuredKeyData(key) {
+    if (!isNilOrEmpty(key)) {
+        MySecureKeyApi.retrieve({
+            namespace: getCurrentNamespace(),
+            name: key
+        }).subscribe((res) => {
+            this.setState({
+                openSecuredKeyDataModal: true,
+                currentSecuredKeyName: key,
+                currentSecuredKeyData: res,
+            });
+        }, (err) => {
+            this.setState({
+                openSecuredKeyDataModal: true,
+                currentSecuredKeyName: key,
+                currentSecuredKeyData: err.response,
+            });
+        });
+    }
+  }
+
+  onShowKeyData(item) {
+    if (!isNilOrEmpty(item)) { 
+        this.fetchSecuredKeyData(item.name);
     }
   }
 
@@ -184,6 +226,17 @@ export default class SecuredKeyInterface extends React.Component {
     );
   }
 
+  renderSecuredKeyDataModal() {
+    return (
+      <SecuredKeyDataModal
+        handleClose={this.toggleSecuredKeyDataModal.bind(this)}
+        title = {this.state.currentSecuredKeyName}
+        showModal={this.state.openSecuredKeyDataModal}
+        message={this.state.currentSecuredKeyData}
+      />
+    );
+  }
+
   render() {
     if (this.state.loading) {
       return (
@@ -215,12 +268,14 @@ export default class SecuredKeyInterface extends React.Component {
           <SecuredKeyGrid
             data={this.state.securedKeysData}
             onCopyToClipboard={this.onCopyToClipboard.bind(this)}
+            onShowKeyData={this.onShowKeyData.bind(this)}
             searchText={this.state.searchText}
             onDeleteKey={this.onDeleteKey.bind(this)}
           />
         </div>
         {this.renderAddSecuredKeyModal()}
         {this.renderDeleteConfirmationModal()}
+        {this.state.openSecuredKeyDataModal && this.renderSecuredKeyDataModal()}
       </div>
     );
   }

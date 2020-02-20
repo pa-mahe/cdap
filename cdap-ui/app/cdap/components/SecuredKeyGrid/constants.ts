@@ -26,7 +26,7 @@ export const SecuredKeysGridCols = [
     headerName: "Name",
     field: "name",
     tooltipField: "name",
-    width: 200,
+    maxWidth: 300,
     getQuickFilterText(params) {
       return params.value;
     },
@@ -35,7 +35,7 @@ export const SecuredKeysGridCols = [
     headerName: "Description",
     field: "description",
     tooltipField: "description",
-    width: 600,
+    flex: 1,
   },
   {
     headerName: "Created Time",
@@ -45,12 +45,12 @@ export const SecuredKeysGridCols = [
       return getEpochDateString(params);
     },
     suppressMenu: true,
-    width: 200,
+    maxWidth: 250,
   },
   {
     headerName: "",
     field: "copy_to_clipboard",
-    width: 40,
+    maxWidth: 50,
     cellRenderer: "gridActionRenderer",
     cellRendererParams: { action: COPY_TO_CLIPBOARD },
     suppressMenu: true,
@@ -59,7 +59,7 @@ export const SecuredKeysGridCols = [
   {
     headerName: "",
     field: "show",
-    width: 40,
+    maxWidth: 50,
     cellRenderer: "gridActionRenderer",
     cellRendererParams: { action: SHOW_KEY_DATA },
     suppressMenu: true,
@@ -68,7 +68,7 @@ export const SecuredKeysGridCols = [
   {
     headerName: "",
     field: "delete",
-    width: 40,
+    maxWidth: 50,
     cellRenderer: "gridActionRenderer",
     cellRendererParams: { action: DELETE_KEY },
     suppressMenu: true,
