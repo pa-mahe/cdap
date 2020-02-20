@@ -24,7 +24,7 @@ import { copyToClipboard } from 'components/SecuredKeyGrid/utils';
 import AddSecuredKeyModal from 'components/SecuredKeyInterface/AddSecuredKeyModal';
 import ConfirmationModal from 'components/ConfirmationModal';
 import LoadingSVG from 'components/LoadingSVG';
-import {objectQuery} from 'services/helpers';
+import {objectQuery, isNilOrEmpty} from 'services/helpers';
 
 import T from 'i18n-react';
 
@@ -88,20 +88,26 @@ export default class SecuredKeyInterface extends React.Component {
           securedKeys: keys
         });
         const observableArr = [];
-        keys.forEach(key => {
-          observableArr.push(MySecureKeyApi.metadata({ namespace, id: key }));
-        });
-        Observable.forkJoin(
-          observableArr
-        ).subscribe((res) => {
-          this.setState({
-            securedKeysData: res,
-            loading: false
-          });
-        }, (err) => {
-          this.setState({ loading: false });
-          console.log(err);
-        });
+        if (isNilOrEmpty(keys)) {
+            this.setState({
+                loading: false
+              });
+        } else {
+            keys.forEach(key => {
+              observableArr.push(MySecureKeyApi.metadata({ namespace, id: key }));
+            });
+            Observable.forkJoin(
+              observableArr
+            ).subscribe((res) => {
+              this.setState({
+                securedKeysData: res,
+                loading: false
+              });
+            }, (err) => {
+              this.setState({ loading: false });
+              console.log(err);
+            });
+        }
       });
   }
 
