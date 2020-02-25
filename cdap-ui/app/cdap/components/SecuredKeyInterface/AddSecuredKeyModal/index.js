@@ -190,7 +190,7 @@ export default class AddSecuredKeyModal extends Component {
 
     MySecureKeyApi.create({namespace, name:this.state.name}, requestBody)
       .subscribe((response) => {
-        console.log('Secured Key Created Successfully');
+        console.log(response);
         this.toggleModal(KEY_ADDITION_SUCCESS);
       }, (err) => {
         let errorMessage = objectQuery(err, 'response', 'message') || objectQuery(err, 'response') || T.translate(`${PREFIX}.defaultCreateErrorMessage`);

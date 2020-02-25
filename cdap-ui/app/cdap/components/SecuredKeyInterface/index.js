@@ -159,7 +159,7 @@ export default class SecuredKeyInterface extends React.Component {
   }
 
   onShowKeyData(item) {
-    if (!isNilOrEmpty(item)) { 
+    if (!isNilOrEmpty(item)) {
         this.fetchSecuredKeyData(item.name);
     }
   }
