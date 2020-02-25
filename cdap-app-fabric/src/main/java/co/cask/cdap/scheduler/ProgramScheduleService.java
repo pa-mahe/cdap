@@ -18,23 +18,29 @@ package co.cask.cdap.scheduler;
 
 import co.cask.cdap.api.ProgramStatus;
 import co.cask.cdap.api.schedule.Trigger;
+import co.cask.cdap.app.program.ProgramDescriptor;
+import co.cask.cdap.app.store.Store;
 import co.cask.cdap.common.AlreadyExistsException;
 import co.cask.cdap.common.BadRequestException;
 import co.cask.cdap.common.NotFoundException;
 import co.cask.cdap.common.ProfileConflictException;
+import co.cask.cdap.common.id.Id;
 import co.cask.cdap.config.PreferencesService;
+import co.cask.cdap.internal.app.runtime.ProgramMacroUtils;
 import co.cask.cdap.internal.app.runtime.ProgramOptionConstants;
 import co.cask.cdap.internal.app.runtime.SystemArguments;
 import co.cask.cdap.internal.app.runtime.schedule.ProgramSchedule;
 import co.cask.cdap.internal.app.runtime.schedule.ProgramScheduleRecord;
 import co.cask.cdap.internal.app.runtime.schedule.ProgramScheduleStatus;
 import co.cask.cdap.internal.app.runtime.schedule.store.Schedulers;
+import co.cask.cdap.internal.app.services.PropertiesResolver;
 import co.cask.cdap.internal.schedule.constraint.Constraint;
 import co.cask.cdap.proto.ProgramType;
 import co.cask.cdap.proto.ScheduleDetail;
 import co.cask.cdap.proto.id.ApplicationId;
 import co.cask.cdap.proto.id.ProgramId;
 import co.cask.cdap.proto.id.ScheduleId;
+import co.cask.cdap.proto.id.SecureKeyId;
 import co.cask.cdap.proto.id.WorkflowId;
 import co.cask.cdap.proto.security.Action;
 import co.cask.cdap.security.authorization.AuthorizationUtil;
@@ -67,16 +73,22 @@ public class ProgramScheduleService {
   private final AuthenticationContext authenticationContext;
   private final Scheduler scheduler;
   private final PreferencesService preferencesService;
+  private final Store store;
+  private final PropertiesResolver propertiesResolver;
 
   @Inject
   ProgramScheduleService(AuthorizationEnforcer authorizationEnforcer,
                          AuthenticationContext authenticationContext,
                          Scheduler scheduler,
-                         PreferencesService preferencesService) {
+                         PreferencesService preferencesService,
+                         Store store,
+                         PropertiesResolver propertiesResolver) {
     this.authorizationEnforcer = authorizationEnforcer;
     this.authenticationContext = authenticationContext;
     this.scheduler = scheduler;
     this.preferencesService = preferencesService;
+    this.store = store;
+    this.propertiesResolver = propertiesResolver;
   }
 
   /**
@@ -242,6 +254,16 @@ public class ProgramScheduleService {
     ProgramSchedule schedule = scheduler.getSchedule(scheduleId);
     authorizationEnforcer.enforce(schedule.getProgramId(), authenticationContext.getPrincipal(), Action.EXECUTE);
     ProgramId progId = schedule.getProgramId();
+
+    ProgramDescriptor programDescriptor = store.loadProgram(progId);
+    Map<String, String> userArgs = propertiesResolver.getUserProperties(
+        Id.Program.fromEntityId(progId));
+    Set<String> macroKeys = ProgramMacroUtils.getSecureMacrosInProgramRun(programDescriptor, userArgs);
+    for (String key : macroKeys) {
+      SecureKeyId secureKeyId = new SecureKeyId(schedule.getProgramId().getNamespace(), key);
+      authorizationEnforcer.enforce(secureKeyId, authenticationContext.getPrincipal(), Action.READ);
+    }
+
     if (SystemArguments.checkUserIdentityPropagationPreference(progId, preferencesService)) {
       String user = authenticationContext.getPrincipal().getName();
       LOG.debug("Adding loggedInUser {} to program {} schedule {}", authenticationContext.getPrincipal().getName(),

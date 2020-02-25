@@ -41,6 +41,7 @@ import co.cask.cdap.common.io.CaseInsensitiveEnumTypeAdapterFactory;
 import co.cask.cdap.config.PreferencesService;
 import co.cask.cdap.internal.app.ApplicationSpecificationAdapter;
 import co.cask.cdap.internal.app.runtime.BasicArguments;
+import co.cask.cdap.internal.app.runtime.ProgramMacroUtils;
 import co.cask.cdap.internal.app.runtime.ProgramOptionConstants;
 import co.cask.cdap.internal.app.runtime.SimpleProgramOptions;
 import co.cask.cdap.internal.app.runtime.SystemArguments;
@@ -65,6 +66,7 @@ import co.cask.cdap.proto.id.NamespaceId;
 import co.cask.cdap.proto.id.ProfileId;
 import co.cask.cdap.proto.id.ProgramId;
 import co.cask.cdap.proto.id.ProgramRunId;
+import co.cask.cdap.proto.id.SecureKeyId;
 import co.cask.cdap.proto.profile.Profile;
 import co.cask.cdap.proto.provisioner.ProvisionerDetail;
 import co.cask.cdap.proto.security.Action;
@@ -406,6 +408,12 @@ public class ProgramLifecycleService {
         KerberosPrincipalId kid = new KerberosPrincipalId(principal);
         authorizationEnforcer.enforce(kid, authenticationContext.getPrincipal(), Action.ADMIN);
     }
+    ProgramDescriptor programDescriptor = store.loadProgram(programId);
+    Set<String> macroKeys = ProgramMacroUtils.getSecureMacrosInProgramRun(programDescriptor, userArgs);
+    for (String key : macroKeys) {
+      SecureKeyId secureKeyId = new SecureKeyId(programId.getNamespace(), key);
+      authorizationEnforcer.enforce(secureKeyId, authenticationContext.getPrincipal(), Action.READ);
+    }
     return runInternal(programId, userArgs, sysArgs, debug);
   }
 
@@ -528,6 +536,13 @@ public class ProgramLifecycleService {
     BasicArguments userArguments = new BasicArguments(userArgs);
     ProgramOptions options = new SimpleProgramOptions(programId, systemArguments, userArguments, debug);
     ProgramDescriptor programDescriptor = store.loadProgram(programId);
+
+    Set<String> macroKeys = ProgramMacroUtils.getSecureMacrosInProgramRun(programDescriptor, userArgs);
+    for (String key : macroKeys) {
+      SecureKeyId secureKeyId = new SecureKeyId(programId.getNamespace(), key);
+      authorizationEnforcer.enforce(secureKeyId, authenticationContext.getPrincipal(), Action.READ);
+    }
+
     ProgramRunId programRunId = programId.run(RunIds.generate());
 
     programStateWriter.start(programRunId, options, null, programDescriptor);
