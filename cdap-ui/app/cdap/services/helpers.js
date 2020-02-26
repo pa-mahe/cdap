@@ -304,7 +304,7 @@ const difference = (first, second) => {
 };
 
 const isPluginSink = (pluginType) => {
-  return ['batchsink', 'realtimesink', 'sparksink', 'sparkdataframesink'].indexOf(pluginType) !== -1;
+  return ['batchsink', 'realtimesink', 'sparksink'].indexOf(pluginType) !== -1;
 };
 
 const isPluginSource = (pluginType) => {

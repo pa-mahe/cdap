@@ -92,7 +92,7 @@ function updateNodeMetrics(pipelineConfig) {
     recordsout: {}
   };
   const sourcePluginTypes = ['batchsource', 'realtimesource', 'streamingsource'];
-  const sinkPluginTypes = ['batchsink', 'realtimesink', 'sparksink', 'sparkdataframesink'];
+  const sinkPluginTypes = ['batchsink', 'realtimesink', 'sparksink'];
   let sourcePlugins = [];
   let sinkPlugins = [];
   pipelineConfig.config.stages.forEach(stage => {
