@@ -189,7 +189,7 @@ export default class ProductDropdown extends Component {
             <DropdownItem
               tag="li"
               onClick={this.toggleSecuredKeyModal}>
-              <a>{T.translate('features.Navbar.ProductDropdown.securedKey')}</a>
+              <a>{T.translate('features.Navbar.ProductDropdown.secureKey')}</a>
             </DropdownItem>
             {/* to enable documentation, uncomment below code  */}
             {/*

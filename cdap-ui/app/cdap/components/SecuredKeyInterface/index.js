@@ -31,7 +31,7 @@ import { KEY_ADDITION_SUCCESS, SECURE_KEY_VAR, SECURE_KEY_TEMPLATE } from './con
 import SecuredKeyDataModal from './SecuredKeyDataModal';
 
 require('./SecuredKeyInterface.scss');
-const PREFIX = 'features.SecuredKeyModal';
+const PREFIX = 'features.SecureKeyStorage.SecuredKeyModal';
 
 export default class SecuredKeyInterface extends React.Component {
   static propTypes = {

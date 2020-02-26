@@ -1827,7 +1827,7 @@ features:
       dataPrep: Data Preparation
       documentationLabel: Documentation
       logout: Logout
-      securedKey: Secured Key
+      secureKey: Secure Key
       modes:
         cloudSandbox: Cloud Sandbox
         distributed: Distributed
@@ -2573,25 +2573,25 @@ features:
           Cancel: Cancel
         data: Data
         defaultCreateErrorMessage: Error in creating secure key
-        defaultSuccessMessage: Secured Key created succcessfully
+        defaultSuccessMessage: Secure Key created succcessfully
         description: Description
-        modalHeader: Add Secured Key
-        name: Secured Key Name
+        modalHeader: Add Secure Key
+        name: Secure Key Name
         MessageLabels:
-          danger: Secured Key creation failed
-          success: Secured key created succcessfully
+          danger: Secure Key creation failed
+          success: Secure key created succcessfully
         securedKeyProperties: Properties
         Placeholders:
-          data: Enter Secured Key Data
-          description: Enter Secured Key description
-          name: Enter Secured Key name
-      modalHeader: Secured Key
-      searchPlaceholder: Search by Secured Key name
-      addSecuredKeyButtonLabel: + Add Secured Key
-      deleteConfirmationHeader: Delete Secured Key
-      confirmationText: "Are you sure you want to delete \"{id}\" property?"
-      deleteError: There was a problem deleting the Secured Key
-      defaultDeleteErrorMessage: Error in deleting Secured key
+          data: Enter Secure Key Data
+          description: Enter Secure Key description
+          name: Enter Secure Key name
+      modalHeader: Secure Key
+      searchPlaceholder: Search by text
+      addSecuredKeyButtonLabel: + Add Secure Key
+      deleteConfirmationHeader: Delete Secure Key
+      confirmationText: "Are you sure you want to delete secure key: \"{id}\"?"
+      deleteError: There was a problem deleting the secure Key
+      defaultDeleteErrorMessage: Error in deleting secure key
 
   ServiceEnableUtility:
     serviceNotFound: Cannot find {artifactName} artifact

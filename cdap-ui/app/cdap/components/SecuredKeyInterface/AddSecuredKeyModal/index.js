@@ -35,7 +35,7 @@ import { KEY_ADDITION_SUCCESS } from '../constants';
 
 require('./AddSecuredKeyModal.scss');
 
-const PREFIX = 'features.SecuredKeyModal.AddSecuredKeyModal';
+const PREFIX = 'features.SecureKeyStorage.SecuredKeyModal.AddSecuredKeyModal';
 const LABEL_COL_CLASS = 'col-xs-3 col-form-label text-xs-right';
 const INPUT_COL_CLASS = 'col-xs-8';
 const DEFAULT_SECURED_KEY_PROPERTIES = {
