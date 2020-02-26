@@ -53,8 +53,8 @@ const GLOBALS = {
       'condition': 'condition',
       'splittertransform': 'splittertransform',
       'sparkdataframesink': 'sparkdataframesink',
-      'sparkdataframecompute': 'sparkdataframecompute',
-      'sparkdataframesource': 'sparkdataframesource'
+      'sparkdataframecompute': 'sparkdataframecompute'
+
     },
     'cdap-etl-realtime': {
       'source': 'realtimesource',
@@ -77,8 +77,7 @@ const GLOBALS = {
       'condition': 'condition',
       'splittertransform': 'splittertransform',
       'sparkdataframesink': 'sparkdataframesink',
-      'sparkdataframecompute': 'sparkdataframecompute',
-      'sparkdataframesource': 'sparkdataframesource'
+      'sparkdataframecompute': 'sparkdataframecompute'
     },
     'post-run-actions': {
       'email': 'Send Email',
@@ -106,8 +105,7 @@ const GLOBALS = {
     'condition': pluginLabels['action'],
     'splittertransform': pluginLabels['transform'],
     'sparkdataframesink': pluginLabels['sink'],
-    'sparkdataframecompute': pluginLabels['analytics'],
-    'sparkdataframesource': pluginLabels['source']
+    'sparkdataframecompute': pluginLabels['analytics']
   },
   pluginLabels: pluginLabels,
   // understand what plugin type is what.
@@ -132,8 +130,7 @@ const GLOBALS = {
     'condition': 'condition',
     'splittertransform': 'transform',
     'sparkdataframesink': 'sink',
-    'sparkdataframecompute': 'transform',
-    'sparkdataframesource': 'source'
+    'sparkdataframecompute': 'transform'
   },
 
   artifactConvert: {
