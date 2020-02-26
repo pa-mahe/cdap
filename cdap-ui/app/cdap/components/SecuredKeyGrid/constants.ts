@@ -27,6 +27,7 @@ export const SecuredKeysGridCols = [
     field: "name",
     tooltipField: "name",
     maxWidth: 300,
+    sortable: true,
     getQuickFilterText(params) {
       return params.value;
     },
@@ -41,6 +42,7 @@ export const SecuredKeysGridCols = [
     headerName: "Created Time",
     field: "createdEpochMs",
     tooltipField: "createdEpochMs",
+    sortable: true,
     valueFormatter(params) {
       return getEpochDateString(params);
     },
