@@ -189,7 +189,11 @@ public class KMSSecureStore implements SecureStore, SecureStoreManager, Delegati
     Map<String, String> secureStoreMetadatas = new HashMap<>(metadatas.length);
     for (int i = 0; i < metadatas.length; i++) {
       KeyProvider.Metadata metadata = metadatas[i];
-      secureStoreMetadatas.put(keysInNamespace.get(i).substring(prefix.length()), metadata.getDescription());
+      String description = metadata.getDescription();
+      if (description == null) {
+        description = "No description found";
+      }
+      secureStoreMetadatas.put(keysInNamespace.get(i).substring(prefix.length()), description);
     }
     return secureStoreMetadatas;
   }
