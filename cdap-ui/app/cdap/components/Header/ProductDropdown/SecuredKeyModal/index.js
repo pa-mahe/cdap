@@ -23,7 +23,7 @@ import T from 'i18n-react';
 import 'whatwg-fetch';
 
 require('./SecuredKeyModal.scss');
-const PREFIX = 'features.SecuredKeyModal';
+const PREFIX = 'features.SecureKeyStorage.SecuredKeyModal';
 
 export default class SecuredKeyModal extends Component {
   constructor(props) {

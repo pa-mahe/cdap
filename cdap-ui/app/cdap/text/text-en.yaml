@@ -2561,32 +2561,37 @@ features:
     Labels:
       fieldName: Field name
       symbolName: Symbol name
-  SecuredKeyModal:
-    AddSecuredKeyModal:
-      Buttons:
-        Save: Save
-        Cancel: Cancel
-      data: Data
-      defaultCreateErrorMessage: Error in creating secure key
-      defaultSuccessMessage: Secured Key created succcessfully
-      description: Description
-      modalHeader: Add Secured Key
-      name: Secured Key Name
-      MessageLabels:
-        danger: Secured Key creation failed
-        success: Secured key created succcessfully
-      securedKeyProperties: Properties
-      Placeholders:
-        data: Enter Secured Key Data
-        description: Enter Secured Key description
-        name: Enter Secured Key name
-    modalHeader: Secured Key
-    searchPlaceholder: Search by Secured Key name
-    addSecuredKeyButtonLabel: + Add Secured Key
-    deleteConfirmationHeader: Delete Secured Key
-    confirmationText: "Are you sure you want to delete \"{id}\" property?"
-    deleteError: There was a problem deleting the Secured Key
-    defaultDeleteErrorMessage: Error in deleting Secured key
+  SecureKeyStorage:
+    Actions:
+      copyToClipboard: Copy secure key to clipboard
+      showKey: Show secure key data
+      deleteKey: Delete secure key
+    SecuredKeyModal:
+      AddSecuredKeyModal:
+        Buttons:
+          Save: Save
+          Cancel: Cancel
+        data: Data
+        defaultCreateErrorMessage: Error in creating secure key
+        defaultSuccessMessage: Secured Key created succcessfully
+        description: Description
+        modalHeader: Add Secured Key
+        name: Secured Key Name
+        MessageLabels:
+          danger: Secured Key creation failed
+          success: Secured key created succcessfully
+        securedKeyProperties: Properties
+        Placeholders:
+          data: Enter Secured Key Data
+          description: Enter Secured Key description
+          name: Enter Secured Key name
+      modalHeader: Secured Key
+      searchPlaceholder: Search by Secured Key name
+      addSecuredKeyButtonLabel: + Add Secured Key
+      deleteConfirmationHeader: Delete Secured Key
+      confirmationText: "Are you sure you want to delete \"{id}\" property?"
+      deleteError: There was a problem deleting the Secured Key
+      defaultDeleteErrorMessage: Error in deleting Secured key
 
   ServiceEnableUtility:
     serviceNotFound: Cannot find {artifactName} artifact
@@ -2965,5 +2970,4 @@ features:
         title: Save
         okButton: OK
         cancelButton: Cancel
-
 ...

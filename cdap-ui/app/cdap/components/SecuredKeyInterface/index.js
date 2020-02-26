@@ -27,7 +27,7 @@ import LoadingSVG from 'components/LoadingSVG';
 import {objectQuery, isNilOrEmpty} from 'services/helpers';
 
 import T from 'i18n-react';
-import { KEY_ADDITION_SUCCESS } from './constants';
+import { KEY_ADDITION_SUCCESS, SECURE_KEY_VAR, SECURE_KEY_TEMPLATE } from './constants';
 import SecuredKeyDataModal from './SecuredKeyDataModal';
 
 require('./SecuredKeyInterface.scss');
@@ -132,7 +132,7 @@ export default class SecuredKeyInterface extends React.Component {
 
   onCopyToClipboard(item) {
     if (item && item.name) {
-      copyToClipboard(item.name);
+      copyToClipboard(SECURE_KEY_TEMPLATE.replace(SECURE_KEY_VAR,item.name));
       this.props.handleClose();
     }
   }

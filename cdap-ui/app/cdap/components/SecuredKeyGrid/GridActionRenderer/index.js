@@ -17,6 +17,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { COPY_TO_CLIPBOARD, DELETE_KEY, SHOW_KEY_DATA } from '../constants';
+import T from 'i18n-react';
+const PREFIX = 'features.SecureKeyStorage.Actions';
 
 
 class ActionRenderer extends React.Component {
@@ -35,17 +37,21 @@ class ActionRenderer extends React.Component {
   render() {
 
     let type = this.props.colDef.cellRendererParams.action;
+    let hoverTitle = '';
     let actionClass =  "grid-item-action fa";
     if (type == COPY_TO_CLIPBOARD) {
       actionClass += " fa-clipboard";
+      hoverTitle =  T.translate(`${PREFIX}.copyToClipboard`);
     } else if (type == SHOW_KEY_DATA) {
       actionClass += " fa-eye";
+      hoverTitle =  T.translate(`${PREFIX}.showKey`);
     } else if (type == DELETE_KEY) {
       actionClass += " fa-trash text-danger";
+      hoverTitle =  T.translate(`${PREFIX}.deleteKey`);
     }
 
     return (<span className={actionClass}
-      onClick={this.invokeParentMethod.bind(this, this.props.data, type)}>
+      onClick={this.invokeParentMethod.bind(this, this.props.data, type)} title = {hoverTitle}>
     </span>);
 
   }
