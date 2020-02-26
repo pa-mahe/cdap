@@ -51,11 +51,8 @@ import com.google.common.collect.SetMultimap;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.spark.api.java.JavaRDD;
-//import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.sql.SparkSession;
-
 
 import java.io.BufferedReader;
 import java.nio.charset.StandardCharsets;
@@ -78,8 +75,7 @@ public class BatchSparkPipelineDriver extends SparkPipelineRunner implements Jav
     .registerTypeAdapter(InputFormatProvider.class, new InputFormatProviderTypeAdapter())
     .create();
 
-  //private transient JavaSparkContext jsc;
-  private transient SparkSession sparkSession;
+  private transient JavaSparkContext jsc;
   private transient JavaSparkExecutionContext sec;
   private transient SparkBatchSourceFactory sourceFactory;
   private transient SparkBatchSinkFactory sinkFactory;
@@ -90,8 +86,8 @@ public class BatchSparkPipelineDriver extends SparkPipelineRunner implements Jav
   @Override
   protected SparkCollection<RecordInfo<Object>> getSource(StageSpec stageSpec, StageStatisticsCollector collector) {
     PluginFunctionContext pluginFunctionContext = new PluginFunctionContext(stageSpec, sec, collector);
-    return new RDDCollection<>(sec, sparkSession, datasetContext, sinkFactory,
-                               sourceFactory.createRDD(sec, new JavaSparkContext(sparkSession.sparkContext()), stageSpec.getName(), Object.class, Object.class)
+    return new RDDCollection<>(sec, jsc, datasetContext, sinkFactory,
+                               sourceFactory.createRDD(sec, jsc, stageSpec.getName(), Object.class, Object.class)
                                  .flatMap(Compat.convert(new BatchSourceFunction(pluginFunctionContext,
                                                                                  numOfRecordsPreview))));
   }
@@ -125,7 +121,7 @@ public class BatchSparkPipelineDriver extends SparkPipelineRunner implements Jav
     SparkJoiner<Object> sparkJoiner = pluginFunctionContext.createPlugin();
 
     SparkPipelineRuntime pipelineRuntime = new SparkPipelineRuntime(sec);
-    SparkExecutionPluginContext pluginContext = new BasicSparkExecutionPluginContext(sec, sparkSession, datasetContext,
+    SparkExecutionPluginContext pluginContext = new BasicSparkExecutionPluginContext(sec, jsc, datasetContext,
         pipelineRuntime, stageSpec);
 
     sparkJoiner.initialize(pluginContext);
@@ -139,13 +135,13 @@ public class BatchSparkPipelineDriver extends SparkPipelineRunner implements Jav
     JavaRDD<?> joinedRDD = sparkJoiner.join(pluginContext, data)
         .map(new CountingFunction<>(stageSpec.getName(), sec.getMetrics(),
             "records.out", sec.getDataTracer(stageSpec.getName())));
-    return new RDDCollection<Object>(sec, sparkSession, datasetContext, sinkFactory, (JavaRDD<Object>) joinedRDD);
+    return new RDDCollection<Object>(sec, jsc, datasetContext, sinkFactory, (JavaRDD<Object>) joinedRDD);
 
   }
 
   @Override
   public void run(JavaSparkExecutionContext sec) throws Exception {
-    this.sparkSession = SparkSession.builder().getOrCreate();
+    this.jsc = new JavaSparkContext();
     this.sec = sec;
 
     // Execution the whole pipeline in one long transaction. This is because the Spark execution
@@ -178,14 +174,14 @@ public class BatchSparkPipelineDriver extends SparkPipelineRunner implements Jav
       Iterator<StageSpec> iterator = phaseSpec.getPhase().iterator();
       while (iterator.hasNext()) {
         StageSpec spec = iterator.next();
-        collectors.put(spec.getName(), new SparkStageStatisticsCollector(sparkSession));
+        collectors.put(spec.getName(), new SparkStageStatisticsCollector(jsc));
       }
     }
     try {
       PipelinePluginInstantiator pluginInstantiator =
         new PipelinePluginInstantiator(pluginContext, sec.getMetrics(), phaseSpec, new SingleConnectorFactory());
       runPipeline(phaseSpec.getPhase(), BatchSource.PLUGIN_TYPE, sec, stagePartitions,
-          pluginInstantiator, collectors, sparkSession);
+          pluginInstantiator, collectors, jsc);
     } finally {
       updateWorkflowToken(sec.getWorkflowToken(), collectors);
     }

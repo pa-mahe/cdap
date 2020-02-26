@@ -18,8 +18,7 @@ package co.cask.cdap.app.runtime.spark
 
 import com.google.common.reflect.TypeToken
 import org.apache.spark.SparkConf
-//import org.apache.spark.SparkContext
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.SparkContext
 import org.apache.spark.scheduler.SparkListener
 import org.apache.spark.scheduler.SparkListenerApplicationStart
 import org.apache.spark.streaming.StreamingContext
@@ -52,8 +51,7 @@ object SparkRuntimeEnv {
   private var stopped = false
   private val properties = new Properties
   private val sparkContextLatch = new CountDownLatch(1)
-  //private var sparkContext: Option[SparkContext] = None
-  private var sparkSession: Option[SparkSession] = None
+  private var sparkContext: Option[SparkContext] = None
   private var streamingContext: Option[StreamingContext] = None
   private val batchedWALs = new mutable.ListBuffer[AnyRef]
   private val rateControllers = new mutable.ListBuffer[AnyRef]
@@ -103,20 +101,20 @@ object SparkRuntimeEnv {
   def getSparkListeners(): Seq[SparkListener] = sparkListeners.toSeq
 
   /**
-    * Sets the [[org.apache.spark.SparkSession]] for the execution.
+    * Sets the [[org.apache.spark.SparkContext]] for the execution.
     */
-  def setContext(context: SparkSession): Unit = {
+  def setContext(context: SparkContext): Unit = {
     this.synchronized {
       if (stopped) {
         context.stop()
         throw new IllegalStateException("Spark program is already stopped")
       }
 
-      if (sparkSession.isDefined) {
+      if (sparkContext.isDefined) {
         throw new IllegalStateException("SparkContext was already created")
       }
 
-      sparkSession = Some(context)
+      sparkContext = Some(context)
       sparkContextLatch.countDown()
     }
 
@@ -124,10 +122,10 @@ object SparkRuntimeEnv {
     // We need to add the listener here and simulate a call to the onApplicationStart.
     if (context.version == "1.2" || context.version.startsWith("1.2.")) {
       val listener = new DelegatingSparkListener
-      context.sparkContext.addSparkListener(listener)
-      val applicationStart = new SparkListenerApplicationStart(context.sparkContext.appName, Some(context.sparkContext.applicationId),
-                                                               context.sparkContext.startTime, context.sparkContext.sparkUser,
-                                                               context.sparkContext.applicationAttemptId, None)
+      context.addSparkListener(listener)
+      val applicationStart = new SparkListenerApplicationStart(context.appName, Some(context.applicationId),
+                                                               context.startTime, context.sparkUser,
+                                                               context.applicationAttemptId, None)
       listener.onApplicationStart(applicationStart)
     }
   }
@@ -139,7 +137,7 @@ object SparkRuntimeEnv {
     this.synchronized {
       if (stopped) {
         context.stop(false)
-        throw new IllegalStateException("Spark Streaming program is already stopped")
+        throw new IllegalStateException("Spark program is already stopped")
       }
 
       // Spark doesn't allow multiple StreamingContext instances concurrently, hence we don't need to check in here
@@ -196,13 +194,13 @@ object SparkRuntimeEnv {
   }
 
   /**
-    * Returns the current [[org.apache.spark.sql.SparkSession]].
+    * Returns the current [[org.apache.spark.SparkContext]].
     *
     * @throws IllegalStateException if there is no SparkContext available.
     */
-  def getContext: SparkSession = {
+  def getContext: SparkContext = {
     this.synchronized {
-      sparkSession.getOrElse(throw new IllegalStateException("SparkSession is not available"))
+      sparkContext.getOrElse(throw new IllegalStateException("SparkContext is not available"))
     }
   }
 
@@ -211,7 +209,7 @@ object SparkRuntimeEnv {
     * shouldn't be called from the same thread that the [[org.apache.spark.SparkContext]] is being constructed,
     * otherwise deadlock might occur.
     */
-  def waitForContext: SparkSession = {
+  def waitForContext: SparkContext = {
     sparkContextLatch.await()
     getContext
   }
@@ -226,7 +224,7 @@ object SparkRuntimeEnv {
   }
 
   /**
-    * Sets a local property on the [[org.apache.spark.sql.SparkSession]] object if available.
+    * Sets a local property on the [[org.apache.spark.SparkContext]] object if available.
     *
     * @param key key of the property
     * @param value value of the property
@@ -234,14 +232,14 @@ object SparkRuntimeEnv {
     */
   def setLocalProperty(key: String, value: String): Boolean = {
     this.synchronized {
-      sparkSession.fold(false)(context => {
-        context.sparkContext.setLocalProperty(key, value)
+      sparkContext.fold(false)(context => {
+        context.setLocalProperty(key, value)
         true
       })
     }
   }
 
-  /**s
+  /**
     * Gets a local property from the [[org.apache.spark.SparkContext]] object if available.
     *
     * @param key key of the property
@@ -250,7 +248,7 @@ object SparkRuntimeEnv {
   @Nullable
   def getLocalProperty(key: String): String = {
     this.synchronized {
-      sparkSession.map(r=>r.sparkContext.getLocalProperty(key)).orNull
+      sparkContext.map(_.getLocalProperty(key)).orNull
     }
   }
 
@@ -260,14 +258,14 @@ object SparkRuntimeEnv {
     *
     * @return [[scala.Some]] [[org.apache.spark.SparkContext]] if there is a one
     */
-  def stop(): Option[SparkSession] = {
-    var sc: Option[SparkSession] = None
+  def stop(): Option[SparkContext] = {
+    var sc: Option[SparkContext] = None
     var ssc: Option[StreamingContext] = None
 
     this.synchronized {
       if (!stopped) {
         stopped = true
-        sc = sparkSession
+        sc = sparkContext
         ssc = streamingContext
       }
     }
@@ -276,7 +274,6 @@ object SparkRuntimeEnv {
       ssc.foreach(_.stop(false, false))
     } finally {
       sc.foreach(context => {
-        // TODO check it sb
         val cleanup = createCleanup(context, batchedWALs, rateControllers, pyMonitorThreads);
         try {
           context.stop
@@ -288,7 +285,7 @@ object SparkRuntimeEnv {
 
     this.synchronized {
       sparkListeners.clear()
-      sparkSession;
+      sparkContext;
     }
   }
 
@@ -296,7 +293,7 @@ object SparkRuntimeEnv {
     * Creates a function that will stop and cleanup up all http servers and thread pools
     * associated with the given SparkContext.
     */
-  private def createCleanup(sparkSession: SparkSession,
+  private def createCleanup(sc: SparkContext,
                             batchedWALs: Iterable[AnyRef],
                             rateControllers: Iterable[AnyRef],
                             pyMonitorThreads: Iterable[Thread]): () => Unit = {
@@ -307,12 +304,12 @@ object SparkRuntimeEnv {
     // Every field access or method call are done through Option, hence if there is any changes in Spark,
     // it won't fail the execution, although it might create permgen leakage, but it also depends on Spark
     // has fixed this Thread resource leakage or not.
-    closers += sparkSession.sparkContext.callMethod("env").orElse(sparkSession.sparkContext.getField("env")).flatMap(env =>
+    closers += sc.callMethod("env").orElse(sc.getField("env")).flatMap(env =>
       env.getField("rpcEnv").flatMap(rpcEnv =>
         // The rpcEnv.fileServer() call returns either a HttpBasedFileServer, NettyStreamManager or AkkaFileServer
         // For HttpBasedFileServer or AkkaFileServer, we are interested in the "httpFileServer" field inside
         rpcEnv.callMethod("fileServer").flatMap(_.getField("httpFileServer")).flatMap(fs =>
-          fs.getField("httpServer").flatMap(httpServer => createServerCloser(httpServer.getField("server"), sparkSession))
+          fs.getField("httpServer").flatMap(httpServer => createServerCloser(httpServer.getField("server"), sc))
         )
       )
     )
@@ -320,11 +317,11 @@ object SparkRuntimeEnv {
     // Create a closer funciton for the WebUI in Spark
     // The WebUI is either accessed through the "ui() method (1.4+) or the "ui" field in the SparkContext
     // The ui field is an Option
-    closers += sparkSession.sparkContext.callMethod("ui").orElse(sparkSession.sparkContext.getField("ui")).flatMap(_ match {
+    closers += sc.callMethod("ui").orElse(sc.getField("ui")).flatMap(_ match {
       case o: Option[Any] => o.flatMap(ui =>
         // Get the serverInfo inside WebUI, which is an Option
         ui.getField("serverInfo").flatMap(_ match {
-          case o: Option[Any] => o.flatMap(info => createServerCloser(info.getField("server"), sparkSession))
+          case o: Option[Any] => o.flatMap(info => createServerCloser(info.getField("server"), sc))
           case _ => None
         })
       )
@@ -356,11 +353,11 @@ object SparkRuntimeEnv {
   /**
     * Creates an optional function that will close the given server when getting called.
     */
-  private def createServerCloser(server: Option[Any], sparkSession: SparkSession): Option[() => Unit] = {
+  private def createServerCloser(server: Option[Any], sc: SparkContext): Option[() => Unit] = {
     server.flatMap(s => {
       s.callMethod("getThreadPool").map(threadPool =>
         () => {
-          LOG.debug("Shutting down Server and ThreadPool used by Spark {}", sparkSession)
+          LOG.debug("Shutting down Server and ThreadPool used by Spark {}", sc)
           s.callMethod("stop")
           threadPool.callMethod("stop")
         }

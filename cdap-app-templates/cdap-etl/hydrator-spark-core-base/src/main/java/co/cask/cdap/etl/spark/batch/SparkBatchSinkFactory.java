@@ -77,7 +77,6 @@ public final class SparkBatchSinkFactory {
   }
 
 
-  @Deprecated
   public <K, V> void writeFromRDD(JavaPairRDD<K, V> rdd, JavaSparkExecutionContext sec, String sinkName,
                                   Class<K> keyClass, Class<V> valueClass) {
     Set<String> outputNames = sinkOutputs.get(sinkName);

@@ -35,7 +35,6 @@ import co.cask.cdap.etl.spec.StageSpec;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.sql.SparkSession;
 
 import java.io.IOException;
 import java.util.List;
@@ -48,16 +47,15 @@ import javax.annotation.Nullable;
 public class BasicSparkExecutionPluginContext extends AbstractTransformContext implements SparkExecutionPluginContext {
 
   private final JavaSparkExecutionContext sec;
-  //private final JavaSparkContext jsc;
-  private final SparkSession sparkSession;
+  private final JavaSparkContext jsc;
   private final DatasetContext datasetContext;
 
-  public BasicSparkExecutionPluginContext(JavaSparkExecutionContext sec, SparkSession sparkSession,
+  public BasicSparkExecutionPluginContext(JavaSparkExecutionContext sec, JavaSparkContext jsc,
                                           DatasetContext datasetContext, PipelineRuntime pipelineRuntime,
                                           StageSpec stageSpec) {
     super(pipelineRuntime, stageSpec, new DatasetContextLookupProvider(datasetContext));
     this.sec = sec;
-    this.sparkSession = sparkSession;
+    this.jsc = jsc;
     this.datasetContext = datasetContext;
   }
 
@@ -125,8 +123,8 @@ public class BasicSparkExecutionPluginContext extends AbstractTransformContext i
   }
 
   @Override
-  public SparkSession getSparkSession() {
-    return sparkSession;
+  public JavaSparkContext getSparkContext() {
+    return jsc;
   }
 
   @Override

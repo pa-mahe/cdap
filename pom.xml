@@ -67,80 +67,17 @@
                <url>http://artifacts.ggn.in.guavus.com:8081/artifactory/libs-snapshot-local</url>
            </snapshotRepository>
   </distributionManagement>
- 
-
+  
   <repositories>
-
-    <repository>
-      <id>gvs-release</id>
-      <url>http://artifacts.ggn.in.guavus.com:80/libs-release-local</url>
-      <releases>
-        <enabled>true</enabled>
-        <updatePolicy>daily</updatePolicy>
-        <checksumPolicy>fail</checksumPolicy>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </repository>
-
-    <repository>
-      <id>apache</id>
-      <url>https://repository.apache.org/content/repositories/public/</url>
-      <releases>
-        <enabled>true</enabled>
-        <updatePolicy>daily</updatePolicy>
-        <checksumPolicy>fail</checksumPolicy>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </repository>
-    <repository>
-      <id>hortonworks</id>
-      <name>hortonworks</name>
-      <url>http://repo.hortonworks.com/content/repositories/releases/</url>
-      <layout>default</layout>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </repository>
     <repository>
       <id>sonatype</id>
-      <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-        <updatePolicy>always</updatePolicy>
-        <checksumPolicy>fail</checksumPolicy>
-      </snapshots>
+      <url>https://oss.sonatype.org/content/groups/public</url>
     </repository>
-
     <repository>
-      <id>snapshot</id>
-      <url>https://repository.apache.org/content/repositories/snapshots/</url>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-        <updatePolicy>always</updatePolicy>
-        <checksumPolicy>fail</checksumPolicy>
-      </snapshots>
+      <id>sonatype-snapshots</id>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
     </repository>
   </repositories>
-
-
-
-
-
-
- 
 
   <properties>
     <jee.version>7</jee.version>
@@ -2762,6 +2699,7 @@
         <module>cdap-api-common</module>
         <module>cdap-spi</module>
         <module>cdap-api</module>
+        <module>cdap-api-spark</module>
         <module>cdap-api-spark2_2.11</module>
         <module>cdap-formats</module>
         <module>cdap-hbase-compat-base</module>
@@ -2780,6 +2718,7 @@
         <module>cdap-data-fabric</module>
         <module>cdap-watchdog</module>
         <module>cdap-app-fabric</module>
+        <module>cdap-spark-core</module>
         <module>cdap-spark-core2_2.11</module>
         <module>cdap-spark-python</module>
         <module>cdap-security-spi</module>
