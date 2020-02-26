@@ -23,6 +23,10 @@ import co.cask.cdap.api.spark.SparkMain;
 import co.cask.cdap.etl.api.batch.SparkCompute;
 import co.cask.cdap.etl.api.batch.SparkJoiner;
 import co.cask.cdap.etl.api.batch.SparkSink;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeCompute;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeJoiner;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeSink;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeSource;
 import co.cask.cdap.etl.api.streaming.StreamingSource;
 import co.cask.cdap.etl.api.streaming.Windower;
 import co.cask.cdap.etl.common.plugin.Caller;
@@ -41,7 +45,13 @@ public class SparkPipelinePluginContext extends PipelinePluginContext {
   @SuppressWarnings("unchecked")
   @Override
   protected Object wrapUnknownPlugin(String pluginId, Object plugin, Caller caller) {
-    if (plugin instanceof Windower) {
+    if (plugin instanceof SparkDataframeCompute) {
+      return new WrappedSparkDataframeCompute((SparkDataframeCompute) plugin, caller);
+    } else if (plugin instanceof SparkDataframeSink) {
+      return new WrappedSparkDataframeSink((SparkDataframeSink) plugin, caller);
+    } else if (plugin instanceof SparkDataframeSource) {
+      return new WrappedSparkDataframeSource((SparkDataframeSource) plugin, caller);
+    } else if (plugin instanceof Windower) {
       return new WrappedWindower((Windower) plugin, caller);
     } else if (plugin instanceof SparkCompute) {
       return new WrappedSparkCompute<>((SparkCompute) plugin, caller);
@@ -55,6 +65,8 @@ public class SparkPipelinePluginContext extends PipelinePluginContext {
       return new WrappedSparkMain((SparkMain) plugin, caller);
     } else if (plugin instanceof SparkJoiner) {
       return new WrappedSparkJoiner<>((SparkJoiner)plugin,caller);
+    } else if (plugin instanceof SparkDataframeJoiner) {
+      return new WrappedSparkDataframeJoiner((SparkDataframeJoiner)plugin,caller);
     }
 
     return plugin;

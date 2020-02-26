@@ -27,13 +27,13 @@ import javax.annotation.Nullable;
 /**
  * Information required to read from or write to a dataset in the spark program.
  */
-final class DatasetInfo {
+public final class DatasetInfo {
 
   private final String datasetName;
   private final Map<String, String> datasetArgs;
   private final List<Split> splits;
 
-  DatasetInfo(String datasetName, Map<String, String> datasetArgs, @Nullable List<Split> splits) {
+  public DatasetInfo(String datasetName, Map<String, String> datasetArgs, @Nullable List<Split> splits) {
     this.datasetName = datasetName;
     this.datasetArgs = ImmutableMap.copyOf(datasetArgs);
     this.splits = splits == null ? null : ImmutableList.copyOf(splits);

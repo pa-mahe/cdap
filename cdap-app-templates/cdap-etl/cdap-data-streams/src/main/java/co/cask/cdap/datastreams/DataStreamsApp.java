@@ -21,6 +21,8 @@ import co.cask.cdap.api.dataset.lib.FileSet;
 import co.cask.cdap.etl.api.AlertPublisher;
 import co.cask.cdap.etl.api.batch.BatchSink;
 import co.cask.cdap.etl.api.batch.SparkSink;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeSink;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeSource;
 import co.cask.cdap.etl.api.streaming.StreamingSource;
 import co.cask.cdap.etl.proto.v2.DataStreamsConfig;
 import com.google.common.base.Objects;
@@ -38,9 +40,11 @@ public class DataStreamsApp extends AbstractApplication<DataStreamsConfig> {
     setDescription(Objects.firstNonNull(config.getDescription(), "Data Streams Application"));
 
     DataStreamsPipelineSpec spec = new DataStreamsPipelineSpecGenerator<>(getConfigurer(),
-                                                                          ImmutableSet.of(StreamingSource.PLUGIN_TYPE),
+                                                                          ImmutableSet.of(StreamingSource.PLUGIN_TYPE,
+                                                                                  SparkDataframeSource.PLUGIN_TYPE),
                                                                           ImmutableSet.of(BatchSink.PLUGIN_TYPE,
                                                                                           SparkSink.PLUGIN_TYPE,
+                                                                                          SparkDataframeSink.PLUGIN_TYPE,
                                                                                           AlertPublisher.PLUGIN_TYPE))
       .generateSpec(config);
     addSpark(new DataStreamsSparkLauncher(spec));

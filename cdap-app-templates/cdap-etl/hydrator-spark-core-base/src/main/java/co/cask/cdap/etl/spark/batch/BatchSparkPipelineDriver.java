@@ -30,6 +30,7 @@ import co.cask.cdap.etl.api.batch.BatchSource;
 import co.cask.cdap.etl.api.batch.SparkCompute;
 import co.cask.cdap.etl.api.batch.SparkExecutionPluginContext;
 import co.cask.cdap.etl.api.batch.SparkJoiner;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeSource;
 import co.cask.cdap.etl.batch.BatchPhaseSpec;
 import co.cask.cdap.etl.batch.PipelinePluginInstantiator;
 import co.cask.cdap.etl.batch.connector.SingleConnectorFactory;
@@ -53,6 +54,9 @@ import com.google.gson.GsonBuilder;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
+
 
 import java.io.BufferedReader;
 import java.nio.charset.StandardCharsets;
@@ -75,7 +79,7 @@ public class BatchSparkPipelineDriver extends SparkPipelineRunner implements Jav
     .registerTypeAdapter(InputFormatProvider.class, new InputFormatProviderTypeAdapter())
     .create();
 
-  private transient JavaSparkContext jsc;
+  private transient SparkSession sparkSession;
   private transient JavaSparkExecutionContext sec;
   private transient SparkBatchSourceFactory sourceFactory;
   private transient SparkBatchSinkFactory sinkFactory;
@@ -86,10 +90,15 @@ public class BatchSparkPipelineDriver extends SparkPipelineRunner implements Jav
   @Override
   protected SparkCollection<RecordInfo<Object>> getSource(StageSpec stageSpec, StageStatisticsCollector collector) {
     PluginFunctionContext pluginFunctionContext = new PluginFunctionContext(stageSpec, sec, collector);
-    return new RDDCollection<>(sec, jsc, datasetContext, sinkFactory,
-                               sourceFactory.createRDD(sec, jsc, stageSpec.getName(), Object.class, Object.class)
+    return new RDDCollection<>(sec, sparkSession, datasetContext, sinkFactory,
+                               sourceFactory.createRDD(sec, JavaSparkContext.fromSparkContext(sparkSession.sparkContext()), stageSpec.getName(), Object.class, Object.class)
                                  .flatMap(Compat.convert(new BatchSourceFunction(pluginFunctionContext,
                                                                                  numOfRecordsPreview))));
+  }
+
+  @Override
+  protected SparkCollection<Row> getSparkDataframeSource(StageSpec stageSpec, StageStatisticsCollector collector, SparkDataframeSource source) throws Exception {
+    throw new UnsupportedOperationException("getSparkDataframeSource not supported in BatchSparkPipelineDriver");
   }
 
   @Override
@@ -121,7 +130,7 @@ public class BatchSparkPipelineDriver extends SparkPipelineRunner implements Jav
     SparkJoiner<Object> sparkJoiner = pluginFunctionContext.createPlugin();
 
     SparkPipelineRuntime pipelineRuntime = new SparkPipelineRuntime(sec);
-    SparkExecutionPluginContext pluginContext = new BasicSparkExecutionPluginContext(sec, jsc, datasetContext,
+    SparkExecutionPluginContext pluginContext = new BasicSparkExecutionPluginContext(sec, sparkSession, datasetContext,
         pipelineRuntime, stageSpec);
 
     sparkJoiner.initialize(pluginContext);
@@ -135,13 +144,18 @@ public class BatchSparkPipelineDriver extends SparkPipelineRunner implements Jav
     JavaRDD<?> joinedRDD = sparkJoiner.join(pluginContext, data)
         .map(new CountingFunction<>(stageSpec.getName(), sec.getMetrics(),
             "records.out", sec.getDataTracer(stageSpec.getName())));
-    return new RDDCollection<Object>(sec, jsc, datasetContext, sinkFactory, (JavaRDD<Object>) joinedRDD);
+    return new RDDCollection<Object>(sec, sparkSession, datasetContext, sinkFactory, (JavaRDD<Object>) joinedRDD);
 
   }
 
   @Override
+  protected SparkCollection<Object> computeDataframeJoin(StageSpec stageSpec, Map<String, SparkCollection<Object>> inputs, StageStatisticsCollector collector) throws Exception {
+    throw new UnsupportedOperationException("computeDataframeJoin not applicable for BatchSparkPipelineDriver");
+  }
+
+  @Override
   public void run(JavaSparkExecutionContext sec) throws Exception {
-    this.jsc = new JavaSparkContext();
+    this.sparkSession = SparkSession.builder().getOrCreate();
     this.sec = sec;
 
     // Execution the whole pipeline in one long transaction. This is because the Spark execution
@@ -174,14 +188,14 @@ public class BatchSparkPipelineDriver extends SparkPipelineRunner implements Jav
       Iterator<StageSpec> iterator = phaseSpec.getPhase().iterator();
       while (iterator.hasNext()) {
         StageSpec spec = iterator.next();
-        collectors.put(spec.getName(), new SparkStageStatisticsCollector(jsc));
+        collectors.put(spec.getName(), new SparkStageStatisticsCollector(sparkSession));
       }
     }
     try {
       PipelinePluginInstantiator pluginInstantiator =
         new PipelinePluginInstantiator(pluginContext, sec.getMetrics(), phaseSpec, new SingleConnectorFactory());
       runPipeline(phaseSpec.getPhase(), BatchSource.PLUGIN_TYPE, sec, stagePartitions,
-          pluginInstantiator, collectors, jsc);
+          pluginInstantiator, collectors, sparkSession);
     } finally {
       updateWorkflowToken(sec.getWorkflowToken(), collectors);
     }

@@ -44,7 +44,7 @@ import static java.lang.Thread.currentThread;
  * A POJO class for storing source information being set from {@link SparkBatchSourceContext} and used in
  * {@link BatchSparkPipelineDriver}.
  */
-final class SparkBatchSourceFactory {
+public final class SparkBatchSourceFactory {
 
   private final Map<String, Input.StreamInput> streams;
   private final Map<String, InputFormatProvider> inputFormatProviders;

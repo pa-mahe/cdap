@@ -29,9 +29,11 @@ import co.cask.cdap.etl.api.TransformContext;
 import org.apache.hadoop.io.ByteWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.spark.Partition;
+import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.SparkSession;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -182,13 +184,21 @@ public interface SparkExecutionPluginContext extends DatasetContext, TransformCo
    */
   <K, V> void saveAsDataset(JavaPairRDD<K, V> rdd, String datasetName, Map<String, String> arguments);
 
-  /**
-   * Returns the {@link JavaSparkContext} used during the execution.
-   *
-   * @return the Spark Context
-   */
-  JavaSparkContext getSparkContext();
+//  /**
+//   * Returns the {@link JavaSparkContext} used during the execution.
+//   *
+//   * @return the Spark Context
+//   */
+//  JavaSparkContext getSparkContext();
 
+   /**
+   * Returns the {@link SparkSession} used during the execution.
+   *
+   * @return the SparkSession
+   */
+  SparkSession getSparkSession();
+
+  SparkContext getSparkContext();
   /**
    * Returns a {@link Serializable} {@link PluginContext} which can be used to request for plugins instances. The
    * instance returned can also be used in Spark program's closures.

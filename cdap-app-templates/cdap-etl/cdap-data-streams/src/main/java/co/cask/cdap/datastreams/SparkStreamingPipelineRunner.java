@@ -23,6 +23,7 @@ import co.cask.cdap.api.spark.JavaSparkExecutionContext;
 import co.cask.cdap.etl.api.JoinElement;
 import co.cask.cdap.etl.api.batch.SparkExecutionPluginContext;
 import co.cask.cdap.etl.api.batch.SparkJoiner;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeSource;
 import co.cask.cdap.etl.api.streaming.StreamingContext;
 import co.cask.cdap.etl.api.streaming.StreamingSource;
 import co.cask.cdap.etl.common.RecordInfo;
@@ -112,6 +113,12 @@ public class SparkStreamingPipelineRunner extends SparkPipelineRunner {
   }
 
   @Override
+  protected SparkCollection getSparkDataframeSource(StageSpec stageSpec, StageStatisticsCollector collector, SparkDataframeSource source) throws Exception {
+    //TODO sb add support
+    throw new UnsupportedOperationException("getSparkDataframeSource not supported in SparkStreamingPipelineRunner yet");
+  }
+
+  @Override
   protected SparkPairCollection<Object, Object> addJoinKey(StageSpec stageSpec, String inputStageName,
                                                            SparkCollection<Object> inputCollection,
                                                            StageStatisticsCollector collector) throws Exception {
@@ -148,5 +155,10 @@ public class SparkStreamingPipelineRunner extends SparkPipelineRunner {
     JavaDStream<Object> result = streamingContext.transform(dstreams, new MultiStreamsTransform<Object>(dynamicDriverContext, stageNames));
     return new DStreamCollection<>(sec, result);
 
+  }
+
+  @Override
+  protected SparkCollection<Object> computeDataframeJoin(StageSpec stageSpec, Map<String, SparkCollection<Object>> inputs, StageStatisticsCollector collector) throws Exception {
+    throw new UnsupportedOperationException("computeDataframeJoin not applicable for BatchSparkPipelineDriver");
   }
 }

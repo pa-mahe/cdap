@@ -31,6 +31,7 @@ import co.cask.cdap.etl.spark.streaming.DynamicDriverContext;
 import co.cask.cdap.etl.spec.StageSpec;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.SparkSession;
 
 import java.util.Map;
 
@@ -59,14 +60,14 @@ public class DynamicSparkJoiner< U> extends SparkJoiner<U> {
   public JavaRDD<U> join(SparkExecutionPluginContext context, Map<String, JavaRDD<?>> inputs) throws Exception {
     // get the context from some input
     JavaRDD<?> input = inputs.values().iterator().next();
-    lazyInit(JavaSparkContext.fromSparkContext(input.context()));
+    lazyInit(SparkSession.builder().config(input.context().getConf()).getOrCreate());
     return delegate.join(context, inputs);
   }
 
   // when checkpointing is enabled, and Spark is loading DStream operations from an existing checkpoint,
   // delegate will be null and the initialize() method won't have been called. So we need to instantiate
   // the delegate and initialize it.
-  private void lazyInit(final JavaSparkContext jsc) throws Exception {
+  private void lazyInit(final SparkSession sparkSession) throws Exception {
     if (delegate == null) {
       PluginFunctionContext pluginFunctionContext = dynamicDriverContext.getPluginFunctionContext();
       delegate = pluginFunctionContext.createPlugin();
@@ -77,7 +78,7 @@ public class DynamicSparkJoiner< U> extends SparkJoiner<U> {
         public void run(DatasetContext datasetContext) throws Exception {
           PipelineRuntime pipelineRuntime = new SparkPipelineRuntime(sec);
           SparkExecutionPluginContext sparkPluginContext =
-            new BasicSparkExecutionPluginContext(sec, jsc, datasetContext, pipelineRuntime, stageSpec);
+                  new BasicSparkExecutionPluginContext(sec, sparkSession, datasetContext, pipelineRuntime, stageSpec);
           delegate.initialize(sparkPluginContext);
         }
       }, Exception.class);

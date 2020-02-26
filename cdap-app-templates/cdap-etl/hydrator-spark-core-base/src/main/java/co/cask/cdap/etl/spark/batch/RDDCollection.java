@@ -26,6 +26,9 @@ import co.cask.cdap.etl.api.batch.SparkCompute;
 import co.cask.cdap.etl.api.batch.SparkExecutionPluginContext;
 import co.cask.cdap.etl.api.batch.SparkJoiner;
 import co.cask.cdap.etl.api.batch.SparkSink;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeCompute;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeSink;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeSource;
 import co.cask.cdap.etl.api.streaming.Windower;
 import co.cask.cdap.etl.common.Constants;
 import co.cask.cdap.etl.common.DefaultAlertPublisherContext;
@@ -55,6 +58,7 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.PairFlatMapFunction;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.storage.StorageLevel;
 import scala.Tuple2;
 
@@ -69,15 +73,15 @@ import javax.annotation.Nullable;
 public class RDDCollection<T> implements SparkCollection<T> {
   private static final Gson GSON = new Gson();
   private final JavaSparkExecutionContext sec;
-  private final JavaSparkContext jsc;
+  private final SparkSession sparkSession;
   private final DatasetContext datasetContext;
   private final SparkBatchSinkFactory sinkFactory;
   private final JavaRDD<T> rdd;
 
-  public RDDCollection(JavaSparkExecutionContext sec, JavaSparkContext jsc,
+  public RDDCollection(JavaSparkExecutionContext sec, SparkSession sparkSession,
                        DatasetContext datasetContext, SparkBatchSinkFactory sinkFactory, JavaRDD<T> rdd) {
     this.sec = sec;
-    this.jsc = jsc;
+    this.sparkSession = sparkSession;
     this.datasetContext = datasetContext;
     this.sinkFactory = sinkFactory;
     this.rdd = rdd;
@@ -91,7 +95,7 @@ public class RDDCollection<T> implements SparkCollection<T> {
 
   @Override
   public SparkCollection<T> cache() {
-    SparkConf sparkConf = jsc.getConf();
+    SparkConf sparkConf = sparkSession.sparkContext().getConf();
     if (sparkConf.getBoolean(Constants.SPARK_PIPELINE_AUTOCACHE_ENABLE_FLAG, true)) {
       String cacheStorageLevelString = sparkConf.get(Constants.SPARK_PIPELINE_CACHING_STORAGE_LEVEL, 
                                                      Constants.DEFAULT_CACHING_STORAGE_LEVEL);
@@ -148,7 +152,12 @@ public class RDDCollection<T> implements SparkCollection<T> {
 
   @Override
   public <K, V> SparkPairCollection<K, V> flatMapToPair(PairFlatMapFunction<T, K, V> function) {
-    return new PairRDDCollection<>(sec, jsc, datasetContext, sinkFactory, rdd.flatMapToPair(function));
+    return new PairRDDCollection<>(sec, sparkSession, datasetContext, sinkFactory, rdd.flatMapToPair(function));
+  }
+
+  @Override
+  public <U> SparkCollection<U> load(StageSpec stageSpec, SparkDataframeSource<U> compute) throws Exception {
+    throw new UnsupportedOperationException("load not supported in RDDCollection");
   }
 
   @Override
@@ -156,11 +165,11 @@ public class RDDCollection<T> implements SparkCollection<T> {
     String stageName = stageSpec.getName();
     PipelineRuntime pipelineRuntime = new SparkPipelineRuntime(sec);
     SparkExecutionPluginContext sparkPluginContext =
-      new BasicSparkExecutionPluginContext(sec, jsc, datasetContext, pipelineRuntime, stageSpec);
+      new BasicSparkExecutionPluginContext(sec, sparkSession, datasetContext, pipelineRuntime, stageSpec);
     compute.initialize(sparkPluginContext);
 
     JavaRDD<T> countedInput = rdd.map(new CountingFunction<T>(stageName, sec.getMetrics(), "records.in", null));
-    SparkConf sparkConf = jsc.getConf();
+    SparkConf sparkConf = sparkSession.sparkContext().getConf();
     if (sparkConf.getBoolean(Constants.SPARK_PIPELINE_AUTOCACHE_ENABLE_FLAG, true)) {
       countedInput = countedInput.cache();
     }
@@ -168,6 +177,11 @@ public class RDDCollection<T> implements SparkCollection<T> {
     return wrap(compute.transform(sparkPluginContext, countedInput)
                   .map(new CountingFunction<U>(stageName, sec.getMetrics(), "records.out",
                                                sec.getDataTracer(stageName))));
+  }
+
+  @Override
+  public <U> SparkCollection<U> compute(StageSpec stageSpec, SparkDataframeCompute<T, U> compute) throws Exception {
+    throw new UnsupportedOperationException("Not an RDD operation");
   }
 
   @Override
@@ -190,13 +204,12 @@ public class RDDCollection<T> implements SparkCollection<T> {
         String stageName = stageSpec.getName();
         PipelineRuntime pipelineRuntime = new SparkPipelineRuntime(sec);
         SparkExecutionPluginContext sparkPluginContext =
-          new BasicSparkExecutionPluginContext(sec, jsc, datasetContext, pipelineRuntime, stageSpec);
+          new BasicSparkExecutionPluginContext(sec, sparkSession, datasetContext, pipelineRuntime, stageSpec);
 
-        SparkConf sparkconf = jsc.getConf();
         JavaRDD<T> countedRDD = 
           rdd.map(new CountingFunction<T>(stageName, sec.getMetrics(), "records.in", null));
 
-        SparkConf sparkConf = jsc.getConf();
+        SparkConf sparkConf = sparkSession.sparkContext().getConf();
         if (sparkConf.getBoolean(Constants.SPARK_PIPELINE_AUTOCACHE_ENABLE_FLAG, true)) {
           countedRDD = countedRDD.cache();
         }
@@ -208,6 +221,11 @@ public class RDDCollection<T> implements SparkCollection<T> {
         }
       }
     };
+  }
+
+  @Override
+  public Runnable createStoreTask(StageSpec stageSpec, SparkDataframeSink<T> sink) throws Exception {
+    throw new UnsupportedOperationException("createStoreTask not implemented yet");
   }
 
   @Override
@@ -232,7 +250,7 @@ public class RDDCollection<T> implements SparkCollection<T> {
   }
 
   private <U> RDDCollection<U> wrap(JavaRDD<U> rdd) {
-    return new RDDCollection<>(sec, jsc, datasetContext, sinkFactory, rdd);
+    return new RDDCollection<>(sec, sparkSession, datasetContext, sinkFactory, rdd);
   }
 
 }

@@ -33,6 +33,10 @@ import co.cask.cdap.etl.api.batch.BatchSink;
 import co.cask.cdap.etl.api.batch.SparkCompute;
 import co.cask.cdap.etl.api.batch.SparkJoiner;
 import co.cask.cdap.etl.api.batch.SparkSink;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeCompute;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeJoiner;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeSink;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeSource;
 import co.cask.cdap.etl.api.streaming.Windower;
 import co.cask.cdap.etl.common.BasicArguments;
 import co.cask.cdap.etl.common.Constants;
@@ -41,6 +45,8 @@ import co.cask.cdap.etl.common.NoopStageStatisticsCollector;
 import co.cask.cdap.etl.common.PipelinePhase;
 import co.cask.cdap.etl.common.RecordInfo;
 import co.cask.cdap.etl.common.StageStatisticsCollector;
+import co.cask.cdap.etl.spark.dataframe.CDataset;
+import co.cask.cdap.etl.spark.dataframe.DataframeCollection;
 import co.cask.cdap.etl.spark.function.AlertPassFilter;
 import co.cask.cdap.etl.spark.function.BatchSinkFunction;
 import co.cask.cdap.etl.spark.function.ErrorPassFilter;
@@ -55,7 +61,9 @@ import co.cask.cdap.etl.spec.StageSpec;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaSparkContext;
+//import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,6 +89,9 @@ public abstract class SparkPipelineRunner {
   protected abstract SparkCollection<RecordInfo<Object>> getSource(StageSpec stageSpec,
                                                                    StageStatisticsCollector collector) throws Exception;
 
+  protected abstract SparkCollection<Row> getSparkDataframeSource(StageSpec stageSpec,
+                                                     StageStatisticsCollector collector, SparkDataframeSource source) throws Exception;
+
   protected abstract SparkPairCollection<Object, Object> addJoinKey(
     StageSpec stageSpec, String inputStageName,
     SparkCollection<Object> inputCollection, StageStatisticsCollector collector) throws Exception;
@@ -96,12 +107,18 @@ public abstract class SparkPipelineRunner {
           StageStatisticsCollector collector
   ) throws Exception;
 
+  protected abstract SparkCollection<Object> computeDataframeJoin(
+          StageSpec stageSpec,
+          Map<String, SparkCollection<Object>> inputs,
+          StageStatisticsCollector collector
+  ) throws Exception;
+
   public void runPipeline(PipelinePhase pipelinePhase, String sourcePluginType,
                           JavaSparkExecutionContext sec,
                           Map<String, Integer> stagePartitions,
                           PluginContext pluginContext,
                           Map<String, StageStatisticsCollector> collectors,
-                          JavaSparkContext jsc) throws Exception {
+                          SparkSession sparkSession) throws Exception {
 
     MacroEvaluator macroEvaluator =
       new DefaultMacroEvaluator(new BasicArguments(sec),
@@ -109,7 +126,7 @@ public abstract class SparkPipelineRunner {
                                 sec.getNamespace());
     Map<String, EmittedRecords> emittedRecords = new HashMap<>();
 
-    boolean autoCache = jsc.getConf().getBoolean(Constants.SPARK_PIPELINE_AUTOCACHE_ENABLE_FLAG, true);
+    boolean autoCache = sparkSession.sparkContext().getConf().getBoolean(Constants.SPARK_PIPELINE_AUTOCACHE_ENABLE_FLAG, true);
 
     // should never happen, but removes warning
     if (pipelinePhase.getDag() == null) {
@@ -175,7 +192,9 @@ public abstract class SparkPipelineRunner {
         while (!BatchJoiner.PLUGIN_TYPE.equals(pluginType)
           && !ErrorTransform.PLUGIN_TYPE.equals(pluginType)
           && !SparkJoiner.PLUGIN_TYPE.equals(pluginType)
+          && !SparkDataframeJoiner.PLUGIN_TYPE.equals(pluginType)
           && inputCollectionIter.hasNext()) {
+          //TODO sb check impact of adding SparkDataframeJoiner
           stageData = stageData.union(inputCollectionIter.next());
         }
       }
@@ -191,10 +210,22 @@ public abstract class SparkPipelineRunner {
       PluginFunctionContext pluginFunctionContext = new PluginFunctionContext(stageSpec, sec, collector);
 
       if (stageData == null) {
-
         // this if-else is nested inside the stageRDD null check to avoid warnings about stageRDD possibly being
         // null in the other else-if conditions
-        if (sourcePluginType.equals(pluginType) || isConnectorSource) {
+
+        if(SparkDataframeSource.PLUGIN_TYPE.equals(pluginType)){
+
+          SparkDataframeSource<Row> sparkSource = pluginContext.newPluginInstance(stageName, macroEvaluator);
+//          SparkCollection inputData = stageData.load()
+//          //emittedBuilder = emittedBuilder.setOutput(stageData.compute(stageSpec, sparkSource));
+//          emittedBuilder = addEmitted(emittedBuilder, pipelinePhase, stageSpec,
+//                  combinedData, hasErrorOutput, hasAlertOutput, autoCache);
+
+          SparkCollection inputData = getSparkDataframeSource(stageSpec, collector, sparkSource);
+          emittedBuilder = addEmitted(emittedBuilder, pipelinePhase, stageSpec,
+                  inputData, hasErrorOutput, hasAlertOutput, autoCache);
+
+        } else if (sourcePluginType.equals(pluginType) || isConnectorSource) {
           SparkCollection<RecordInfo<Object>> combinedData = getSource(stageSpec, collector);
           emittedBuilder = addEmitted(emittedBuilder, pipelinePhase, stageSpec,
                                       combinedData, hasErrorOutput, hasAlertOutput, autoCache);
@@ -247,11 +278,19 @@ public abstract class SparkPipelineRunner {
         SparkCompute<Object, Object> sparkCompute = pluginContext.newPluginInstance(stageName, macroEvaluator);
         emittedBuilder = emittedBuilder.setOutput(stageData.compute(stageSpec, sparkCompute));
 
+      } else if (SparkDataframeCompute.PLUGIN_TYPE.equals(pluginType)) {
+
+        SparkDataframeCompute<Object, Object> sparkCompute = pluginContext.newPluginInstance(stageName, macroEvaluator);
+        emittedBuilder = emittedBuilder.setOutput(stageData.compute(stageSpec, sparkCompute));
+
+      } else if (SparkDataframeSink.PLUGIN_TYPE.equals(pluginType)) {
+
+        SparkDataframeSink<Object> sparkDFSink = pluginContext.newPluginInstance(stageName, macroEvaluator);
+        sinkRunnables.add(stageData.createStoreTask(stageSpec, sparkDFSink));
       } else if (SparkSink.PLUGIN_TYPE.equals(pluginType)) {
 
         SparkSink<Object> sparkSink = pluginContext.newPluginInstance(stageName, macroEvaluator);
         sinkRunnables.add(stageData.createStoreTask(stageSpec, sparkSink));
-
       } else if (BatchAggregator.PLUGIN_TYPE.equals(pluginType)) {
 
         Integer partitions = stagePartitions.get(stageName);
@@ -262,7 +301,10 @@ public abstract class SparkPipelineRunner {
       } else if (SparkJoiner.PLUGIN_TYPE.equals(pluginType)) {
         SparkJoiner<Object> sparkJoiner = pluginContext.newPluginInstance(stageName, macroEvaluator);
         emittedBuilder = emittedBuilder.setOutput(computeJoin(stageSpec, inputDataCollections, collector));
-      } else if (BatchJoiner.PLUGIN_TYPE.equals(pluginType)) {
+      } else if (SparkDataframeJoiner.PLUGIN_TYPE.equals(pluginType)) {
+        SparkDataframeJoiner<Object> sparkJoiner = pluginContext.newPluginInstance(stageName, macroEvaluator);
+        emittedBuilder = emittedBuilder.setOutput(computeDataframeJoin(stageSpec, inputDataCollections, collector));
+      }else if (BatchJoiner.PLUGIN_TYPE.equals(pluginType)) {
 
         BatchJoiner<Object, Object, Object> joiner = pluginContext.newPluginInstance(stageName, macroEvaluator);
         BatchJoinerRuntimeContext joinerRuntimeContext = pluginFunctionContext.createBatchRuntimeContext();
@@ -368,6 +410,7 @@ public abstract class SparkPipelineRunner {
     ExecutorService executorService = Executors.newFixedThreadPool(sinkRunnables.size(), new ThreadFactoryBuilder()
       .setNameFormat("pipeline-sink-task")
       .build());
+
     for (Runnable runnable : sinkRunnables) {
       sinkFutures.add(executorService.submit(runnable));
     }
@@ -414,7 +457,8 @@ public abstract class SparkPipelineRunner {
   }
 
   private EmittedRecords.Builder addEmitted(EmittedRecords.Builder builder, PipelinePhase pipelinePhase,
-                                            StageSpec stageSpec, SparkCollection<RecordInfo<Object>> stageData,
+                                            //StageSpec stageSpec, SparkCollection<RecordInfo<Object>> stageData,
+                                            StageSpec stageSpec, SparkCollection stageData,
                                             boolean hasErrors, boolean hasAlerts, boolean autoCache) {
 
     if (autoCache) {
@@ -430,6 +474,7 @@ public abstract class SparkPipelineRunner {
     }
 
     if (hasErrors) {
+      //TODO sb add native df support
       SparkCollection<ErrorRecord<Object>> errors =
         stageData.flatMap(stageSpec, Compat.convert(new ErrorPassFilter<>()));
       if (shouldCache) {
@@ -438,6 +483,7 @@ public abstract class SparkPipelineRunner {
       builder.setErrors(errors);
     }
     if (hasAlerts) {
+      //TODO sb add native df support
       SparkCollection<Alert> alerts = stageData.flatMap(stageSpec, Compat.convert(new AlertPassFilter()));
       if (shouldCache) {
         alerts = alerts.cache();
@@ -446,7 +492,8 @@ public abstract class SparkPipelineRunner {
     }
 
     if (SplitterTransform.PLUGIN_TYPE.equals(stageSpec.getPluginType())) {
-      // set collections for each port, implemented as a filter on the port.
+      //TODO sb add native df support
+      //set collections for each port, implemented as a filter on the port.
       for (StageSpec.Port portSpec : stageSpec.getOutputPorts().values()) {
         String port = portSpec.getPort();
         SparkCollection<Object> portData = stageData.flatMap(stageSpec, Compat.convert(new OutputPassFilter<>(port)));
@@ -456,7 +503,17 @@ public abstract class SparkPipelineRunner {
         builder.addPort(port, portData);
       }
     } else {
-      SparkCollection<Object> outputs = stageData.flatMap(stageSpec, Compat.convert(new OutputPassFilter<>()));
+      //TODO sb add alert support for df
+      //TODO sb add error support for df
+      SparkCollection outputs = null;
+      if((stageData instanceof DataframeCollection)
+          && ((DataframeCollection) stageData).getUnderlying().getType() == CDataset.CDatasetType.Dataset){
+        //TODO sb add output type filter support for df
+        LOG.info("stageData is of type dataframe, skipping output type filter, not yet implemented");
+        outputs = stageData;
+      }else{
+        outputs = stageData.flatMap(stageSpec, Compat.convert(new OutputPassFilter<>()));
+      }
       if (shouldCache) {
         outputs = outputs.cache();
       }

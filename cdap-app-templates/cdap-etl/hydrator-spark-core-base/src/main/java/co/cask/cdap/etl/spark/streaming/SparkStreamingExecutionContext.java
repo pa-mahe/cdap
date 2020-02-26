@@ -31,9 +31,11 @@ import co.cask.cdap.etl.common.AbstractTransformContext;
 import co.cask.cdap.etl.spark.NoLookupProvider;
 import co.cask.cdap.etl.spark.SparkPipelineRuntime;
 import co.cask.cdap.etl.spec.StageSpec;
+import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.SparkSession;
 
 import java.io.IOException;
 import java.util.List;
@@ -121,7 +123,16 @@ public class SparkStreamingExecutionContext extends AbstractTransformContext imp
   }
 
   @Override
-  public JavaSparkContext getSparkContext() {
+  public SparkSession getSparkSession() {
+    return null;
+  }
+
+  @Override
+  public SparkContext getSparkContext() {
+    return getSparkSession().sparkContext();
+  }
+
+  public JavaSparkContext getJavaSparkContext() {
     return jsc;
   }
 

@@ -74,7 +74,10 @@ public class SparkClassRewriter implements ClassRewriter {
     Type.getObjectType("co/cask/cdap/app/runtime/spark/SparkRuntimeEnv");
   private static final Type SPARK_RUNTIME_UTILS_TYPE =
     Type.getObjectType("co/cask/cdap/app/runtime/spark/SparkRuntimeUtils");
-  private static final Type SPARK_CONTEXT_TYPE = Type.getObjectType("org/apache/spark/SparkContext");
+  //private static final Type SPARK_CONTEXT_TYPE = Type.getObjectType("org/apache/spark/SparkContext");
+
+  private static final Type SPARK_SESSION_TYPE = Type.getObjectType("org/apache/spark/sql/SparkSession");
+
   private static final Type SPARK_STREAMING_CONTEXT_TYPE =
     Type.getObjectType("org/apache/spark/streaming/StreamingContext");
   private static final Type SPARK_CONF_TYPE = Type.getObjectType("org/apache/spark/SparkConf");
@@ -141,9 +144,9 @@ public class SparkClassRewriter implements ClassRewriter {
   @Nullable
   @Override
   public byte[] rewriteClass(String className, InputStream input) throws IOException {
-    if (className.equals(SPARK_CONTEXT_TYPE.getClassName())) {
+    if (className.equals(SPARK_SESSION_TYPE.getClassName())) {
       // Rewrite the SparkContext class by rewriting the constructor to save the context to SparkRuntimeEnv
-      return rewriteContext(SPARK_CONTEXT_TYPE, input);
+      return rewriteContext(SPARK_SESSION_TYPE, input);
     }
     if (className.equals(SPARK_STREAMING_CONTEXT_TYPE.getClassName())) {
       // Rewrite the StreamingContext class by rewriting the constructor to save the context to SparkRuntimeEnv

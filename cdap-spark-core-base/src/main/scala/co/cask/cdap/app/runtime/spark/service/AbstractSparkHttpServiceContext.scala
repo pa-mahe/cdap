@@ -24,6 +24,7 @@ import co.cask.cdap.app.runtime.spark.SparkRuntimeContextProvider
 import co.cask.cdap.app.runtime.spark.SparkRuntimeEnv
 import org.apache.spark.SparkContext
 import org.apache.spark.api.java.JavaSparkContext
+import org.apache.spark.sql.SparkSession
 
 /**
   * An abstract base class for implementing [[co.cask.cdap.api.spark.service.SparkHttpServiceContext]].
@@ -31,9 +32,13 @@ import org.apache.spark.api.java.JavaSparkContext
 abstract class AbstractSparkHttpServiceContext(sec: SparkExecutionContext)
   extends SerializableSparkExecutionContext(sec) with SparkHttpServiceContext {
 
-  override lazy val getSparkContext: SparkContext = SparkRuntimeEnv.waitForContext
+//TODO check if this is actually needed
+  override lazy val  getSparkContext: SparkContext = getSparkSession.sparkContext
 
-  override lazy val getJavaSparkContext: JavaSparkContext = new JavaSparkContext(getSparkContext)
+  override lazy val getSparkSession: SparkSession = SparkRuntimeEnv.waitForContext
+
+//TODO check if this is actually needed
+  override lazy val getJavaSparkContext: JavaSparkContext = new JavaSparkContext(getSparkSession.sparkContext)
 
   override def getPluginContext: SparkHttpServicePluginContext =
     new DefaultSparkHttpServicePluginContext(SparkRuntimeContextProvider.get())

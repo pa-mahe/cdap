@@ -32,6 +32,10 @@ import co.cask.cdap.etl.api.batch.SparkCompute;
 import co.cask.cdap.etl.api.batch.SparkJoiner;
 import co.cask.cdap.etl.api.batch.SparkSink;
 import co.cask.cdap.etl.api.condition.Condition;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeCompute;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeJoiner;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeSink;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeSource;
 import co.cask.cdap.etl.common.Constants;
 import co.cask.cdap.etl.proto.v2.ETLBatchConfig;
 import com.google.common.base.Objects;
@@ -47,7 +51,10 @@ public class DataPipelineApp extends AbstractApplication<ETLBatchConfig> {
   public static final String DEFAULT_DESCRIPTION = "Data Pipeline Application";
   private static final Set<String> supportedPluginTypes = ImmutableSet.of(
     BatchSource.PLUGIN_TYPE, BatchSink.PLUGIN_TYPE, Transform.PLUGIN_TYPE, BatchJoiner.PLUGIN_TYPE,
-    Constants.Connector.PLUGIN_TYPE, BatchAggregator.PLUGIN_TYPE, SparkJoiner.PLUGIN_TYPE, SparkCompute.PLUGIN_TYPE, SparkSink.PLUGIN_TYPE,
+    Constants.Connector.PLUGIN_TYPE, BatchAggregator.PLUGIN_TYPE, SparkJoiner.PLUGIN_TYPE,
+          SparkCompute.PLUGIN_TYPE, SparkSink.PLUGIN_TYPE,
+          SparkDataframeSource.PLUGIN_TYPE, SparkDataframeCompute.PLUGIN_TYPE, SparkDataframeSink.PLUGIN_TYPE,
+          SparkDataframeJoiner.PLUGIN_TYPE,
     Action.PLUGIN_TYPE, ErrorTransform.PLUGIN_TYPE, Constants.SPARK_PROGRAM_PLUGIN_TYPE, SplitterTransform.PLUGIN_TYPE,
     Condition.PLUGIN_TYPE, AlertPublisher.PLUGIN_TYPE);
 

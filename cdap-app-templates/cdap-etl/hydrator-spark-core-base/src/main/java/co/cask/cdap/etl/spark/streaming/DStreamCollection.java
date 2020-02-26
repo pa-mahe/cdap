@@ -24,6 +24,9 @@ import co.cask.cdap.etl.api.Alert;
 import co.cask.cdap.etl.api.batch.SparkCompute;
 import co.cask.cdap.etl.api.batch.SparkExecutionPluginContext;
 import co.cask.cdap.etl.api.batch.SparkSink;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeCompute;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeSink;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeSource;
 import co.cask.cdap.etl.api.streaming.Windower;
 import co.cask.cdap.etl.common.Constants;
 import co.cask.cdap.etl.common.NoopStageStatisticsCollector;
@@ -35,20 +38,13 @@ import co.cask.cdap.etl.spark.SparkCollection;
 import co.cask.cdap.etl.spark.SparkPairCollection;
 import co.cask.cdap.etl.spark.SparkPipelineRuntime;
 import co.cask.cdap.etl.spark.batch.BasicSparkExecutionPluginContext;
-import co.cask.cdap.etl.spark.streaming.function.ComputeTransformFunction;
-import co.cask.cdap.etl.spark.streaming.function.CountingTransformFunction;
-import co.cask.cdap.etl.spark.streaming.function.DynamicAggregatorAggregate;
-import co.cask.cdap.etl.spark.streaming.function.DynamicAggregatorGroupBy;
-import co.cask.cdap.etl.spark.streaming.function.DynamicSparkCompute;
-import co.cask.cdap.etl.spark.streaming.function.DynamicTransform;
-import co.cask.cdap.etl.spark.streaming.function.StreamingAlertPublishFunction;
-import co.cask.cdap.etl.spark.streaming.function.StreamingBatchSinkFunction;
-import co.cask.cdap.etl.spark.streaming.function.StreamingSparkSinkFunction;
+import co.cask.cdap.etl.spark.streaming.function.*;
 import co.cask.cdap.etl.spec.StageSpec;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.PairFlatMapFunction;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.storage.StorageLevel;
 import org.apache.spark.streaming.Durations;
 import org.apache.spark.streaming.api.java.JavaDStream;
@@ -118,6 +114,11 @@ public class DStreamCollection<T> implements SparkCollection<T> {
   }
 
   @Override
+  public <U> SparkCollection<U> load(StageSpec stageSpec, SparkDataframeSource<U> compute) throws Exception {
+    throw new UnsupportedOperationException("load not supported in DStreamCollection");
+  }
+
+  @Override
   public SparkCollection<RecordInfo<Object>> aggregate(StageSpec stageSpec, @Nullable Integer partitions,
                                                        StageStatisticsCollector collector) {
     DynamicDriverContext dynamicDriverContext = new DynamicDriverContext(stageSpec, sec, collector);
@@ -132,19 +133,42 @@ public class DStreamCollection<T> implements SparkCollection<T> {
 
   @Override
   public <U> SparkCollection<U> compute(final StageSpec stageSpec, SparkCompute<T, U> compute) throws Exception {
+    //TODO sb temp commented, to work on batch first
     final SparkCompute<T, U> wrappedCompute =
-      new DynamicSparkCompute<>(new DynamicDriverContext(stageSpec, sec, new NoopStageStatisticsCollector()), compute);
+      new DynamicSparkCompute(new DynamicDriverContext(stageSpec, sec, new NoopStageStatisticsCollector()), compute);
     Transactionals.execute(sec, new TxRunnable() {
       @Override
       public void run(DatasetContext datasetContext) throws Exception {
+
         PipelineRuntime pipelineRuntime = new SparkPipelineRuntime(sec);
+        SparkSession sparkSession = SparkSession.builder().config(stream.context().sparkContext().getConf()).getOrCreate();
         SparkExecutionPluginContext sparkPluginContext =
-          new BasicSparkExecutionPluginContext(sec, JavaSparkContext.fromSparkContext(stream.context().sparkContext()),
+          new BasicSparkExecutionPluginContext(sec, sparkSession,
                                                datasetContext, pipelineRuntime, stageSpec);
         wrappedCompute.initialize(sparkPluginContext);
       }
     }, Exception.class);
     return wrap(stream.transform(new ComputeTransformFunction<>(sec, stageSpec, wrappedCompute)));
+  }
+
+  @Override
+  public <U> SparkCollection<U> compute(StageSpec stageSpec, SparkDataframeCompute<T, U> compute) throws Exception {
+    //TODO sb temp commented, to work on batch first
+    final SparkDataframeCompute<T, U> wrappedSparkDataframeCompute =
+            new DynamicSparkDataframeCompute(new DynamicDriverContext(stageSpec, sec, new NoopStageStatisticsCollector()), compute);
+    Transactionals.execute(sec, new TxRunnable() {
+      @Override
+      public void run(DatasetContext datasetContext) throws Exception {
+
+        PipelineRuntime pipelineRuntime = new SparkPipelineRuntime(sec);
+        SparkSession sparkSession = SparkSession.builder().config(stream.context().sparkContext().getConf()).getOrCreate();
+        SparkExecutionPluginContext sparkPluginContext =
+                new BasicSparkExecutionPluginContext(sec, sparkSession,
+                        datasetContext, pipelineRuntime, stageSpec);
+        wrappedSparkDataframeCompute.initialize(sparkPluginContext);
+      }
+    }, Exception.class);
+    return wrap(stream.transform(new ComputeDataframeTransformFunction(sec, stageSpec, wrappedSparkDataframeCompute)));
   }
 
   @Override
@@ -168,6 +192,11 @@ public class DStreamCollection<T> implements SparkCollection<T> {
         Compat.foreachRDD(stream.cache(), new StreamingSparkSinkFunction<T>(sec, stageSpec));
       }
     };
+  }
+
+  @Override
+  public Runnable createStoreTask(StageSpec stageSpec, SparkDataframeSink<T> sink) throws Exception {
+    throw new UnsupportedOperationException("not implemented yet");
   }
 
   @Override

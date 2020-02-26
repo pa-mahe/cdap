@@ -49,6 +49,10 @@ import co.cask.cdap.etl.api.batch.SparkCompute;
 import co.cask.cdap.etl.api.batch.SparkJoiner;
 import co.cask.cdap.etl.api.batch.SparkSink;
 import co.cask.cdap.etl.api.condition.Condition;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeCompute;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeJoiner;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeSink;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeSource;
 import co.cask.cdap.etl.api.lineage.field.FieldOperation;
 import co.cask.cdap.etl.batch.ActionSpec;
 import co.cask.cdap.etl.batch.BatchPhaseSpec;
@@ -61,7 +65,6 @@ import co.cask.cdap.etl.batch.connector.AlertReader;
 import co.cask.cdap.etl.batch.connector.ConnectorSource;
 import co.cask.cdap.etl.batch.connector.MultiConnectorSource;
 import co.cask.cdap.etl.batch.customaction.PipelineAction;
-import co.cask.cdap.etl.batch.mapreduce.ETLMapReduce;
 import co.cask.cdap.etl.common.BasicArguments;
 import co.cask.cdap.etl.common.Constants;
 import co.cask.cdap.etl.common.DefaultAlertPublisherContext;
@@ -84,7 +87,7 @@ import co.cask.cdap.etl.proto.v2.ArgumentMapping;
 import co.cask.cdap.etl.proto.v2.ETLBatchConfig;
 import co.cask.cdap.etl.proto.v2.PluginPropertyMapping;
 import co.cask.cdap.etl.proto.v2.TriggeringPropertyMapping;
-import co.cask.cdap.etl.spark.batch.ETLSpark;
+import co.cask.cdap.etl.spark.dataframe.ETLSparkDF;
 import co.cask.cdap.etl.spec.StageSpec;
 import co.cask.cdap.internal.io.SchemaTypeAdapter;
 import com.google.common.collect.ImmutableSet;
@@ -168,8 +171,8 @@ public class SmartWorkflow extends AbstractWorkflow {
     // the run early, before provisioning is performed.
     // If plugins were registered only at the application level, CDAP would not be able to fail the run early.
     spec = new BatchPipelineSpecGenerator<>(getConfigurer(),
-                                            ImmutableSet.of(BatchSource.PLUGIN_TYPE),
-                                            ImmutableSet.of(BatchSink.PLUGIN_TYPE, SparkSink.PLUGIN_TYPE,
+                                            ImmutableSet.of(BatchSource.PLUGIN_TYPE, SparkDataframeSource.PLUGIN_TYPE),
+                                            ImmutableSet.of(BatchSink.PLUGIN_TYPE, SparkSink.PLUGIN_TYPE, SparkDataframeSink.PLUGIN_TYPE,
                                                             AlertPublisher.PLUGIN_TYPE),
                                             config.getEngine()).generateSpec(config);
 
@@ -178,7 +181,13 @@ public class SmartWorkflow extends AbstractWorkflow {
     for (StageSpec stageSpec : spec.getStages()) {
       stageSpecs.put(stageSpec.getName(), stageSpec);
       String pluginType = stageSpec.getPlugin().getType();
-      if (SparkCompute.PLUGIN_TYPE.equals(pluginType) || SparkSink.PLUGIN_TYPE.equals(pluginType) || SparkJoiner.PLUGIN_TYPE.equals(pluginType)) {
+      if (SparkCompute.PLUGIN_TYPE.equals(pluginType)
+              || SparkDataframeCompute.PLUGIN_TYPE.equals(pluginType)
+              || SparkSink.PLUGIN_TYPE.equals(pluginType)
+              || SparkDataframeSink.PLUGIN_TYPE.equals(pluginType)
+              || SparkJoiner.PLUGIN_TYPE.equals(pluginType)
+              || SparkDataframeSource.PLUGIN_TYPE.equals(pluginType)
+              || SparkDataframeJoiner.PLUGIN_TYPE.equals(pluginType)) {
         useSpark = true;
       }
     }
@@ -359,7 +368,8 @@ public class SmartWorkflow extends AbstractWorkflow {
     } else {
       planner = new PipelinePlanner(supportedPluginTypes,
                                     ImmutableSet.of(BatchAggregator.PLUGIN_TYPE, BatchJoiner.PLUGIN_TYPE),
-                                    ImmutableSet.of(SparkCompute.PLUGIN_TYPE, SparkSink.PLUGIN_TYPE, SparkJoiner.PLUGIN_TYPE),
+                                    ImmutableSet.of(SparkCompute.PLUGIN_TYPE, SparkSink.PLUGIN_TYPE, SparkJoiner.PLUGIN_TYPE,
+                                            SparkDataframeCompute.PLUGIN_TYPE, SparkDataframeSink.PLUGIN_TYPE,  SparkDataframeJoiner.PLUGIN_TYPE),
                                     actionTypes, multiPortTypes);
     }
     return planner.plan(spec);
@@ -790,12 +800,8 @@ public class SmartWorkflow extends AbstractWorkflow {
       applicationConfigurer.addSpark(new ExternalSparkProgram(batchPhaseSpec, stageSpec));
       programAdder.addSpark(programName);
     } else if (useSpark) {
-      applicationConfigurer.addSpark(new ETLSpark(batchPhaseSpec));
+      applicationConfigurer.addSpark(new ETLSparkDF(batchPhaseSpec));
       programAdder.addSpark(programName);
-    } else {
-      applicationConfigurer.addMapReduce(new ETLMapReduce(batchPhaseSpec,
-                                                          new HashSet<>(connectorDatasets.values())));
-      programAdder.addMapReduce(programName);
     }
     return programAdder;
   }

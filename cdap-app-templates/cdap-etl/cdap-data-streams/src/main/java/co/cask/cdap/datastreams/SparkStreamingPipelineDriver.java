@@ -33,6 +33,10 @@ import co.cask.cdap.etl.api.batch.BatchSink;
 import co.cask.cdap.etl.api.batch.SparkCompute;
 import co.cask.cdap.etl.api.batch.SparkJoiner;
 import co.cask.cdap.etl.api.batch.SparkSink;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeCompute;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeJoiner;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeSink;
+import co.cask.cdap.etl.api.dataframe.SparkDataframeSource;
 import co.cask.cdap.etl.api.streaming.StreamingSource;
 import co.cask.cdap.etl.api.streaming.Windower;
 import co.cask.cdap.etl.common.Constants;
@@ -46,6 +50,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function0;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.streaming.Durations;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.twill.filesystem.Location;
@@ -62,10 +67,17 @@ public class SparkStreamingPipelineDriver implements JavaSparkMain {
   private static final Gson GSON = new GsonBuilder()
     .registerTypeAdapter(Schema.class, new SchemaTypeAdapter())
     .create();
+  private transient SparkSession sparkSession;
+
   private static final Set<String> SUPPORTED_PLUGIN_TYPES = ImmutableSet.of(
-    StreamingSource.PLUGIN_TYPE, BatchSink.PLUGIN_TYPE, SparkSink.PLUGIN_TYPE, Transform.PLUGIN_TYPE,
-    BatchAggregator.PLUGIN_TYPE, BatchJoiner.PLUGIN_TYPE, SparkCompute.PLUGIN_TYPE, SparkJoiner.PLUGIN_TYPE,
-    Windower.PLUGIN_TYPE,ErrorTransform.PLUGIN_TYPE, SplitterTransform.PLUGIN_TYPE, AlertPublisher.PLUGIN_TYPE);
+          SparkDataframeSource.PLUGIN_TYPE, StreamingSource.PLUGIN_TYPE,
+          BatchSink.PLUGIN_TYPE, SparkSink.PLUGIN_TYPE, SparkDataframeSink.PLUGIN_TYPE,
+          Transform.PLUGIN_TYPE,
+          BatchAggregator.PLUGIN_TYPE, BatchJoiner.PLUGIN_TYPE,
+          SparkCompute.PLUGIN_TYPE, SparkDataframeCompute.PLUGIN_TYPE, SparkJoiner.PLUGIN_TYPE,
+          SparkDataframeJoiner.PLUGIN_TYPE,
+          Windower.PLUGIN_TYPE,
+          ErrorTransform.PLUGIN_TYPE, SplitterTransform.PLUGIN_TYPE, AlertPublisher.PLUGIN_TYPE);
 
   @Override
   public void run(final JavaSparkExecutionContext sec) throws Exception {
@@ -125,8 +137,12 @@ public class SparkStreamingPipelineDriver implements JavaSparkMain {
     Function0<JavaStreamingContext> contextFunction = new Function0<JavaStreamingContext>() {
       @Override
       public JavaStreamingContext call() throws Exception {
+
+        JavaSparkContext javaSparkContext = new JavaSparkContext();
+        sparkSession = SparkSession.builder().config(javaSparkContext.sc().getConf()).getOrCreate();
+
         JavaStreamingContext jssc = new JavaStreamingContext(
-          new JavaSparkContext(), Durations.milliseconds(pipelineSpec.getBatchIntervalMillis()));
+                javaSparkContext, Durations.milliseconds(pipelineSpec.getBatchIntervalMillis()));
         SparkStreamingPipelineRunner runner = new SparkStreamingPipelineRunner(sec, jssc, pipelineSpec, 
                                                                                pipelineSpec.isCheckpointsDisabled());
         PipelinePluginContext pluginContext = new PipelinePluginContext(sec.getPluginContext(), sec.getMetrics(),
@@ -137,7 +153,7 @@ public class SparkStreamingPipelineDriver implements JavaSparkMain {
         try {
           runner.runPipeline(pipelinePhase, StreamingSource.PLUGIN_TYPE,
                              sec, new HashMap<String, Integer>(), pluginContext,
-                             new HashMap<String, StageStatisticsCollector>(), jssc.sparkContext());
+                             new HashMap<String, StageStatisticsCollector>(), sparkSession);
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
