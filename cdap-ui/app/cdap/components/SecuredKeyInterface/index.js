@@ -123,6 +123,9 @@ export default class SecuredKeyInterface extends React.Component {
               console.log(err);
             });
         }
+      }, (err) => {
+        this.setState({ loading: false });
+        console.log(err);
       });
   }
 
