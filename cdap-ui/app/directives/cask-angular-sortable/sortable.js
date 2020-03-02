@@ -81,7 +81,11 @@ function caskSortableDirective ($log, $stateParams, $state) {
         scope.sortable.predicate = getPredicate(defaultPredicate.addClass('predicate'));
       }
 
-      headers.append('<i class="fa fa-toggle-down"></i>');
+      if (scope.sortable && scope.sortable.reverse) {
+        headers.append('<i class="fa fa-toggle-down"></i>');
+      } else {
+        headers.append('<i class="fa fa-toggle-up"></i>');
+      }
 
       headers.on('click', function() {
         var th = angular.element(this),
