@@ -81,11 +81,7 @@ function caskSortableDirective ($log, $stateParams, $state) {
         scope.sortable.predicate = getPredicate(defaultPredicate.addClass('predicate'));
       }
 
-      if (scope.sortable && scope.sortable.reverse) {
-        headers.append('<i class="fa fa-toggle-down"></i>');
-      } else {
-        headers.append('<i class="fa fa-toggle-up"></i>');
-      }
+      headers.append('<i class="fa fa-toggle-down"></i>');
 
       headers.on('click', function() {
         var th = angular.element(this),
@@ -114,7 +110,7 @@ function caskSortableDirective ($log, $stateParams, $state) {
         $state.go($state.$current.name, {
           sortBy:  predicate,
           reverse: scope.sortable.reverse ? 'reverse' : ''
-        });
+        }, {notify: false});
       });
 
     }
