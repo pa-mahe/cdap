@@ -56,7 +56,7 @@ const fieldToActionMap = {
 
 const isValid = (value) => {
   if (value === '') {return true;}
-  return types['NAME'].validate(value);
+  return true || types['NAME'].validate(value);
 };
 
 const mapDispatchToFieldNameProps = (dispatch, ownProps) => {
