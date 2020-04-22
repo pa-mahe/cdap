@@ -17,31 +17,21 @@
 package co.cask.cdap.common.lang;
 
 import com.google.common.base.Function;
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.net.URLConnection;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Queue;
+import java.net.*;
+import java.util.*;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
-import javax.annotation.Nullable;
 
 /**
  * Utility class for collection of methods for dealing with ClassLoader and loading class.
@@ -67,7 +57,7 @@ public final class ClassLoaders {
    */
   public static Class<?> loadClass(String className, @Nullable ClassLoader classLoader,
                                    Object caller) throws ClassNotFoundException {
-    ClassLoader cl = Objects.firstNonNull(classLoader, caller.getClass().getClassLoader());
+    ClassLoader cl = MoreObjects.firstNonNull(classLoader, caller.getClass().getClassLoader());
     return cl.loadClass(className);
   }
 

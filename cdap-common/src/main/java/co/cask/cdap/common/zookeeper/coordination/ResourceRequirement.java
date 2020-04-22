@@ -15,6 +15,7 @@
  */
 package co.cask.cdap.common.zookeeper.coordination;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
@@ -61,10 +62,10 @@ public final class ResourceRequirement {
 
   @Override
   public String toString() {
-    return Objects.toStringHelper(this)
-      .add("name", name)
-      .add("partitions", partitions)
-      .toString();
+    return MoreObjects.toStringHelper(this)
+            .add("name", name)
+            .add("partitions", partitions)
+            .toString();
   }
 
   @Override
@@ -140,10 +141,10 @@ public final class ResourceRequirement {
 
     @Override
     public String toString() {
-      return Objects.toStringHelper(this)
-        .add("name", name)
-        .add("replicas", replicas)
-        .toString();
+      return MoreObjects.toStringHelper(this)
+              .add("name", name)
+              .add("replicas", replicas)
+              .toString();
     }
 
     @Override

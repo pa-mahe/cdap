@@ -22,14 +22,15 @@ import co.cask.cdap.proto.ProgramRunStatus;
 import co.cask.cdap.proto.RunRecord;
 import co.cask.cdap.proto.id.ProfileId;
 import co.cask.cdap.proto.id.ProgramRunId;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.gson.annotations.SerializedName;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import javax.annotation.Nullable;
 
 /**
  * Store the meta information about program runs in CDAP.
@@ -140,20 +141,20 @@ public final class RunRecordMeta extends RunRecord {
 
   @Override
   public String toString() {
-    return Objects.toStringHelper(this)
-      .add("programRunId", getProgramRunId())
-      .add("startTs", getStartTs())
-      .add("runTs", getRunTs())
-      .add("stopTs", getStopTs())
-      .add("suspendTs", getSuspendTs())
-      .add("resumeTs", getResumeTs())
-      .add("status", getStatus())
-      .add("twillrunid", getTwillRunId())
-      .add("properties", getProperties())
-      .add("sourceId", getSourceId() == null ? null : Bytes.toHexString(getSourceId()))
-      .add("artifactId", getArtifactId() == null ? null : getArtifactId())
-      .add("principal", getPrincipal() == null ? null : getPrincipal())
-      .toString();
+    return MoreObjects.toStringHelper(this)
+            .add("programRunId", getProgramRunId())
+            .add("startTs", getStartTs())
+            .add("runTs", getRunTs())
+            .add("stopTs", getStopTs())
+            .add("suspendTs", getSuspendTs())
+            .add("resumeTs", getResumeTs())
+            .add("status", getStatus())
+            .add("twillrunid", getTwillRunId())
+            .add("properties", getProperties())
+            .add("sourceId", getSourceId() == null ? null : Bytes.toHexString(getSourceId()))
+            .add("artifactId", getArtifactId() == null ? null : getArtifactId())
+            .add("principal", getPrincipal() == null ? null : getPrincipal())
+            .toString();
   }
 
   /**

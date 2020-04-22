@@ -16,7 +16,7 @@
 
 package co.cask.cdap.common.logging;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.Maps;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.util.ConverterUtils;
@@ -111,9 +111,9 @@ public abstract class AbstractLoggingContext implements LoggingContext {
 
   @Override
   public String toString() {
-    return Objects.toStringHelper(this)
-      .add("systemTags", systemTags)
-      .toString();
+      return MoreObjects.toStringHelper(this)
+              .add("systemTags", systemTags)
+              .toString();
   }
 
   private static final class SystemTagImpl implements SystemTag {
@@ -137,10 +137,10 @@ public abstract class AbstractLoggingContext implements LoggingContext {
 
     @Override
     public String toString() {
-      return Objects.toStringHelper(this)
-        .add("name", name)
-        .add("value", value)
-        .toString();
+        return MoreObjects.toStringHelper(this)
+                .add("name", name)
+                .add("value", value)
+                .toString();
     }
   }
 }
