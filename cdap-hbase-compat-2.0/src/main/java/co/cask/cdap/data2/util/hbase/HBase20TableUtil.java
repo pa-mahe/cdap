@@ -17,9 +17,12 @@
 package co.cask.cdap.data2.util.hbase;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Stack;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.CompareOperator;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -32,8 +35,14 @@ import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.coprocessor.Batch;
+import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.security.access.AccessControlClient;
 import org.slf4j.Logger;
@@ -63,9 +72,179 @@ public class HBase20TableUtil extends HBaseTableUtil {
   @Override
   public Table createHTable(Configuration conf, TableId tableId) throws IOException {
     Preconditions.checkArgument(tableId != null, "Table id should not be null");
+    // orginal code is a connection leak connection :  should be closed as soon as the table is closed in this (not very good) programming model
+    // therefore we introduce a convenient proxy class to fix this
     Connection connection = ConnectionFactory.createConnection(conf);
-    return connection.getTable(HTableNameConverter.toTableName(tablePrefix, tableId));
+    //return connection.getTable(HTableNameConverter.toTableName(tablePrefix, tableId));
+    return new ConnectionAwareTable(connection, connection.getTable(HTableNameConverter.toTableName(tablePrefix, tableId)));
 //    return new HTable(conf, HTableNameConverter.toTableName(tablePrefix, tableId));
+  }
+
+  private static class ConnectionAwareTable implements Table {
+    private boolean closed = false;
+    private final Connection connection;
+    private final Table delegate;
+
+    public ConnectionAwareTable(Connection connection, Table delegate) {
+      this.connection = connection;
+      this.delegate = delegate;
+    }
+
+    @Override
+    public void close() throws IOException {
+      Stack<Exception> exceptions = new Stack<>();
+      try {
+        delegate.close();
+      } catch (IOException e) {
+        LOG.debug("Exception closing table: {} ", e, e);
+        exceptions.push(e);
+      }
+      finally {
+        try {
+          connection.close();
+        } catch (IOException e) {
+          LOG.debug("Exeption closing underlying connection: {}", e, e);
+          exceptions.push(e);
+        }
+
+      }
+
+      closed = true;
+      if (!exceptions.isEmpty()) {
+        throw new IOException(String.format("Got exception(s) closing resource: %s", exceptions), exceptions.peek());
+      }
+    }
+
+    @Override
+    public TableName getName() {
+      Preconditions.checkArgument(!closed, "Resource was closed");
+      return delegate.getName();
+    }
+
+    @Override
+    public Configuration getConfiguration() {
+      Preconditions.checkArgument(!closed, "Resource was closed");
+      return delegate.getConfiguration();
+    }
+
+    @Override
+    @Deprecated
+    public HTableDescriptor getTableDescriptor() throws IOException {
+      Preconditions.checkArgument(!closed, "Resource was closed");
+      return delegate.getTableDescriptor();
+    }
+
+    @Override
+    public org.apache.hadoop.hbase.client.TableDescriptor getDescriptor() throws IOException {
+      Preconditions.checkArgument(!closed, "Resource was closed");
+      return delegate.getDescriptor();
+    }
+
+    @Override
+    public boolean exists(Get get) throws IOException {
+      Preconditions.checkArgument(!closed, "Resource was closed");
+      return delegate.exists(get);
+    }
+
+    @Override
+    public boolean[] exists(List<Get> gets) throws IOException {
+      Preconditions.checkArgument(!closed, "Resource was closed");
+      return delegate.exists(gets);
+    }
+
+    @Override
+    @Deprecated
+    public boolean[] existsAll(List<Get> gets) throws IOException {
+      Preconditions.checkArgument(!closed, "Resource was closed");
+      return delegate.existsAll(gets);
+    }
+
+    @Override
+    public void batch(List<? extends Row> actions, Object[] results) throws IOException, InterruptedException {
+      Preconditions.checkArgument(!closed, "Resource was closed");
+      delegate.batch(actions, results);
+    }
+
+    @Override
+    public <R> void batchCallback(List<? extends Row> actions, Object[] results, Batch.Callback<R> callback) throws IOException, InterruptedException {
+      Preconditions.checkArgument(!closed, "Resource was closed");
+      delegate.batchCallback(actions, results, callback);
+    }
+
+    @Override
+    public Result get(Get get) throws IOException {
+      Preconditions.checkArgument(!closed, "Resource was closed");
+      return delegate.get(get);
+    }
+
+    @Override
+    public Result[] get(List<Get> gets) throws IOException {
+      Preconditions.checkArgument(!closed, "Resource was closed");
+      return delegate.get(gets);
+    }
+
+    @Override
+    public ResultScanner getScanner(Scan scan) throws IOException {
+      Preconditions.checkArgument(!closed, "Resource was closed");
+      return delegate.getScanner(scan);
+    }
+
+    @Override
+    public ResultScanner getScanner(byte[] family) throws IOException {
+      Preconditions.checkArgument(!closed, "Resource was closed");
+      return delegate.getScanner(family);
+    }
+
+    @Override
+    public ResultScanner getScanner(byte[] family, byte[] qualifier) throws IOException {
+      Preconditions.checkArgument(!closed, "Resource was closed");
+      return delegate.getScanner(family, qualifier);
+    }
+
+    @Override
+    public void put(Put put) throws IOException {
+      Preconditions.checkArgument(!closed, "Resource was closed");
+      delegate.put(put);
+    }
+
+    @Override
+    public void put(List<Put> puts) throws IOException {
+      Preconditions.checkArgument(!closed, "Resource was closed");
+      delegate.put(puts);
+    }
+
+    @Override
+    @Deprecated
+    public boolean checkAndPut(byte[] row, byte[] family, byte[] qualifier, byte[] value, Put put) throws IOException {
+      Preconditions.checkArgument(!closed, "Resource was closed");
+      return delegate.checkAndPut(row, family, qualifier, value, put);
+    }
+
+    @Override
+    @Deprecated
+    public boolean checkAndPut(byte[] row, byte[] family, byte[] qualifier, CompareFilter.CompareOp compareOp, byte[] value, Put put) throws IOException {
+      Preconditions.checkArgument(!closed, "Resource was closed");
+      return delegate.checkAndPut(row, family, qualifier, compareOp, value, put);
+    }
+
+    @Override
+    @Deprecated
+    public boolean checkAndPut(byte[] row, byte[] family, byte[] qualifier, CompareOperator op, byte[] value, Put put) throws IOException {
+      Preconditions.checkArgument(!closed, "Resource was closed");
+      return delegate.checkAndPut(row, family, qualifier, op, value, put);
+    }
+
+    @Override
+    public void delete(Delete delete) throws IOException {
+      Preconditions.checkArgument(!closed, "Resource was closed");
+      delegate.delete(delete);
+    }
+
+    @Override
+    public void delete(List<Delete> deletes) throws IOException {
+      Preconditions.checkArgument(!closed, "Resource was closed");
+      delegate.delete(deletes);
+    }
   }
 
   @Override
